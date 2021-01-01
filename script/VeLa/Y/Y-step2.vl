@@ -1,0 +1,16 @@
+-- Y combinator - step 2
+fact is (function (f:function):function {
+    function (n:integer):integer {
+        when 
+              n < 2 -> 1
+              true -> n * f(f)(n - 1)
+    }
+})(function (f:function):function {
+    function (n:integer):integer {
+        when 
+              n < 2 -> 1
+              true -> n * f(f)(n - 1)
+    }
+})
+
+print(fact(5))

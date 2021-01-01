@@ -1,0 +1,21 @@
+-- Y combinator
+
+Y is function (h:function):function {
+    (function (f:function):function {
+        f(f)
+    })(function (f:function):function {
+        h(function (n:integer):integer {
+            f(f)(n)
+        })
+    })
+}
+
+fact is Y(function (g:function):function {
+    function (n:integer):integer {
+        when n < 2 -> 1
+                 true -> n * g(n - 1)
+    }
+})
+
+-- should yield 120 but yields anonymous function
+print(fact(5))

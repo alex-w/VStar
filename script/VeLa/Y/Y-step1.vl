@@ -1,0 +1,7 @@
+-- Y combinator - step 1 
+fact is function (n:integer):integer {
+    when n < 2 -> 1
+             true -> n * fact(n - 1)
+}
+
+print(fact(5))

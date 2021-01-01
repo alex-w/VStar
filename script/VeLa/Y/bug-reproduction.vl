@@ -1,0 +1,17 @@
+g(f:function):function {
+  function(n:integer):integer {
+    f(n)
+  }
+}
+
+cube(n:integer):integer {
+  n*n*n
+}
+
+-- understanding why this fails may help us understand Y Y fails with similar error
+
+--println(g(cube))
+println(g(cube)(3))
+
+--h <- g(cube)
+--println(h(3))
