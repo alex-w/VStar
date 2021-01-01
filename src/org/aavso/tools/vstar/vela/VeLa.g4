@@ -43,7 +43,8 @@ grammar VeLa;
 //     parameter list at invocation time. The object scope must be popped 
 //     when a function exits or by a method invocation handler in eval().
 //     A function could be marked as a method, for example.
-// - Consider omitting "function" prefix ala Java etc anonymous functions
+// - Consider omitting or making optional "function" prefix ala Java etc 
+//   anonymous functions
 // - Consider a list subscript operator vs nth()
 // - Require list elements to be all the same?
 //   o realistic & good for API calls
@@ -51,7 +52,8 @@ grammar VeLa;
 //     coerced to the same value; perhaps declared as list<T> or checked
 //     upon each element addition
 // - Y-combinator in VeLa
-// - Allow a type called ANY or variant types such as (real | string | list)
+// - Allow a type called ANY or variant/union types such as 
+//   (real | string | list) as found in TypeScript
 // - Refinement types ala Wadler's complement to blame, e.g. f(n:real{n >= 0})
 // - Doc strings for functions; use ;; rather than -- ?
 
@@ -300,15 +302,14 @@ type
 
 funcall
 :
-    funobj LPAREN expression?
+    funobj LPAREN
     (
         expression
     )* RPAREN
 ;
 
-// IDENT corresponds to an explicit function name
-// var allows a HOF (let binding or function parameter)
-// anonFundef allows an anonymous function
+// - IDENT corresponds to an explicit function name
+// - anonFundef allows an anonymous function
 
 funobj
 :
