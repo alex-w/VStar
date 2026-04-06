@@ -1681,7 +1681,7 @@ public class Mediator {
 
         Dimension bounds = new Dimension((int) (TabbedDataPane.WIDTH * 0.9), (int) (TabbedDataPane.HEIGHT * 0.9));
 
-        return new ObservationAndMeanPlotPane(plotName, subTitle, obsAndMeanPlotModel, bounds, retriever);
+        return new ObservationAndMeanPlotPane(plotName, subTitle, obsAndMeanPlotModel, bounds, retriever, AnalysisType.RAW_DATA);
     }
 
     /**
