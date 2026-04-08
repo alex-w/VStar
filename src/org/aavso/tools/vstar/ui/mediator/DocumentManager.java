@@ -38,294 +38,309 @@ import org.aavso.tools.vstar.util.stats.PhaseCalcs;
 
 /**
  * This class manages the creation of VStar "documents", i.e. models and GUI
- * components and important state. It will also expand to manage document printing,
- * saving (and the need to) etc. Another thing this class will allow us to do is to
- * cache GUI components (and by association, their models) permitting reuse of these
- * and updates to models. TODO: call it ComponentManager instead?
+ * components and important state. It will also expand to manage document
+ * printing, saving (and the need to) etc. Another thing this class will allow
+ * us to do is to cache GUI components (and by association, their models)
+ * permitting reuse of these and updates to models. TODO: call it
+ * ComponentManager instead?
  */
 @SuppressWarnings("serial")
 public class DocumentManager {
 
     private Mediator mediator;
+
+    // Model and residuals maps.
+    private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> rawDataModelComponents;
+    private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> phasedModelComponents;
+
+    private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> rawDataResidualComponents;
+    private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> phasedResidualComponents;
+
+    private boolean phasePlotExists;
+    private double epoch;
+    private double period;
+
+    // state of user-controllable plot pane characteristics
+    private Map<AnalysisType, Boolean> showErrorBars;
+    private Map<AnalysisType, Boolean> showCrossHairs;
+    private Map<AnalysisType, Boolean> invertRange;
+    private Map<AnalysisType, Boolean> invertSeriesOrder;
+    private Map<AnalysisType, Boolean> joinMeans;
+
+    private Map<String, String> statsInfo;
+
+    private static int filterNum = 0;
+
+    public DocumentManager() {
+        mediator = Mediator.getInstance();
+
+        init();
+    }
+
+    // ** phase, epoch, period methods **
+
+    public boolean phasePlotExists() {
+        return phasePlotExists;
+    }
+
+    public double getEpoch() {
+        return epoch;
+    }
+
+    public double getPeriod() {
+        return period;
+    }
+
+    // ** user-controllable plot pane methods **
+
+    public void toggleErrorBarState() {
+        togglePlotControlState(showErrorBars);
+    }
+
+    public void toggleCrossHairState() {
+        togglePlotControlState(showCrossHairs);
+    }
+
+    public void toggleRangeAxisInversionState() {
+        togglePlotControlState(invertRange);
+    }
+
+    public void toggleSeriesOrderInversionState() {
+        togglePlotControlState(invertSeriesOrder);
+    }
+
+    public void toggleJoinMeansState() {
+        togglePlotControlState(joinMeans);
+    }
+
+    public boolean shouldShowErrorBars(AnalysisType analysisType) {
+        return showErrorBars.get(analysisType);
+    }
+
+    public boolean shouldShowErrorBars() {
+        return shouldShowErrorBars(mediator.getAnalysisType());
+    }
+
+    public boolean shouldShowCrossHairs(AnalysisType analysisType) {
+        return showCrossHairs.get(analysisType);
+    }
+
+    public boolean shouldShowCrossHairs() {
+        return shouldShowCrossHairs(mediator.getAnalysisType());
+    }
+
+    public boolean shouldInvertRange(AnalysisType analysisType) {
+        return invertRange.get(analysisType);
+    }
+
+    public boolean shouldInvertRange() {
+        return shouldInvertRange(mediator.getAnalysisType());
+    }
+
+    public boolean shouldInvertSeriesOrder(AnalysisType analysisType) {
+        return invertSeriesOrder.get(analysisType);
+    }
     
-	// Model and residuals maps.
-	private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> rawDataModelComponents;
-	private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> phasedModelComponents;
+    public boolean shouldInvertSeriesOrder() {
+        return shouldInvertSeriesOrder(mediator.getAnalysisType());
+    }
 
-	private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> rawDataResidualComponents;
-	private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> phasedResidualComponents;
+    public boolean shouldJoinMeans(AnalysisType analysisType) {
+        return joinMeans.get(analysisType);
+    }
+    
+    public boolean shouldJoinMeans() {
+        return shouldJoinMeans(mediator.getAnalysisType());
+    }
 
-	private boolean phasePlotExists;
-	private double epoch;
-	private double period;
-
-	// state of user-controllable plot pane characteristics
-	private Map<AnalysisType, Boolean> showErrorBars;
-	private Map<AnalysisType, Boolean> showCrossHairs;
-	private Map<AnalysisType, Boolean> invertRange;
-	private Map<AnalysisType, Boolean> invertSeriesOrder;
-	private Map<AnalysisType, Boolean> joinMeans;
-	
-	private Map<String, String> statsInfo;
-
-	private static int filterNum = 0;
-
-	public DocumentManager() {
-	    mediator = Mediator.getInstance();
-
-		init();
-	}
-
-	// ** phase, epoch, period methods **
-	
-	public boolean phasePlotExists() {
-		return phasePlotExists;
-	}
-
-	public double getEpoch() {
-		return epoch;
-	}
-
-	public double getPeriod() {
-		return period;
-	}
-
-	// ** user-controllable plot pane methods **
-	
-	public void toggleErrorBarState() {
-	    togglePlotControlState(showErrorBars);
-	}
-
-	public void toggleCrossHairState() {
-	    togglePlotControlState(showCrossHairs);
-	}
-
-	public void toggleRangeAxisInversionState() {
-	    togglePlotControlState(invertRange);
-	}
-	
-	public void toggleSeriesOrderInversionState() {
-	    togglePlotControlState(invertSeriesOrder);
-	}
-
-	public void toggleJoinMeansState() {
-	    togglePlotControlState(joinMeans);
-	}
-
-	public boolean shouldShowErrorBars() {
-		return showErrorBars.get(mediator.getAnalysisType());
-	}
-
-	public boolean shouldShowCrossHairs() {
-		return showCrossHairs.get(mediator.getAnalysisType());
-	}
-
-	public boolean shouldInvertRange() {
-		return invertRange.get(mediator.getAnalysisType());
-	}
-
-	public boolean shouldInvertSeriesOrder() {
-		return invertSeriesOrder.get(mediator.getAnalysisType());
-	}
-
-	public boolean shouldJoinMeans() {
-		return joinMeans.get(mediator.getAnalysisType());
-	}
-
-	private void togglePlotControlState(Map<AnalysisType, Boolean> map) {
-	    AnalysisType analysisType = mediator.getAnalysisType();
+    private void togglePlotControlState(Map<AnalysisType, Boolean> map) {
+        AnalysisType analysisType = mediator.getAnalysisType();
         map.put(analysisType, !map.get(analysisType));
-	}
-	
-	// ** List pane methods **
+    }
 
-	public SyntheticObservationListPane<AbstractModelObservationTableModel> getModelListPane(
-			AnalysisType type, IModel model) {
-		SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
-		String key = model.getDescription();
+    // ** List pane methods **
 
-		switch (type) {
-		case RAW_DATA:
-			if (!rawDataModelComponents.containsKey(key)) {
-				// Create model table model and GUI component since they have
-				// not been.
-				RawDataModelObservationTableModel modelTableModel = new RawDataModelObservationTableModel(
-						model.getFit(), SeriesType.Model);
-				String summary = model.toString();
-				SyntheticObservationListPane<AbstractModelObservationTableModel> modelPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
-						modelTableModel, summary);
+    public SyntheticObservationListPane<AbstractModelObservationTableModel> getModelListPane(AnalysisType type,
+            IModel model) {
+        SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
+        String key = model.getDescription();
 
-				rawDataModelComponents.put(key, modelPane);
-			}
+        switch (type) {
+        case RAW_DATA:
+            if (!rawDataModelComponents.containsKey(key)) {
+                // Create model table model and GUI component since they have
+                // not been.
+                RawDataModelObservationTableModel modelTableModel = new RawDataModelObservationTableModel(
+                        model.getFit(), SeriesType.Model);
+                String summary = model.toString();
+                SyntheticObservationListPane<AbstractModelObservationTableModel> modelPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
+                        modelTableModel, summary);
 
-			pane = rawDataModelComponents.get(key);
-			break;
+                rawDataModelComponents.put(key, modelPane);
+            }
 
-		case PHASE_PLOT:
-			key = getPhasedModelKey(model);
+            pane = rawDataModelComponents.get(key);
+            break;
 
-			if (!phasedModelComponents.containsKey(key)) {
-				// Set the fit list's phases according to the last phase change.
-				// It's okay to modify the original data.
-				PhaseCalcs.setPhases(model.getFit(), epoch, period);
+        case PHASE_PLOT:
+            key = getPhasedModelKey(model);
 
-				// Create model table model and GUI component since they have
-				// not been.
-				PhasePlotModelObservationTableModel modelTableModel = new PhasePlotModelObservationTableModel(
-						model.getFit(), SeriesType.Model);
-				String summary = model.toString();
-				SyntheticObservationListPane<AbstractModelObservationTableModel> modelPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
-						modelTableModel, summary);
+            if (!phasedModelComponents.containsKey(key)) {
+                // Set the fit list's phases according to the last phase change.
+                // It's okay to modify the original data.
+                PhaseCalcs.setPhases(model.getFit(), epoch, period);
 
-				phasedModelComponents.put(key, modelPane);
-			}
+                // Create model table model and GUI component since they have
+                // not been.
+                PhasePlotModelObservationTableModel modelTableModel = new PhasePlotModelObservationTableModel(
+                        model.getFit(), SeriesType.Model);
+                String summary = model.toString();
+                SyntheticObservationListPane<AbstractModelObservationTableModel> modelPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
+                        modelTableModel, summary);
 
-			pane = phasedModelComponents.get(key);
-			break;
-		}
+                phasedModelComponents.put(key, modelPane);
+            }
 
-		return pane;
-	}
+            pane = phasedModelComponents.get(key);
+            break;
+        }
 
-	public SyntheticObservationListPane<AbstractModelObservationTableModel> getResidualsListPane(
-			AnalysisType type, IModel model) {
-		SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
-		String key = model.getDescription();
+        return pane;
+    }
 
-		switch (type) {
-		case RAW_DATA:
-			if (!rawDataResidualComponents.containsKey(key)) {
-				RawDataModelObservationTableModel residualsTableModel = new RawDataModelObservationTableModel(
-						model.getResiduals(), SeriesType.Residuals);
-				String summary = model.toString();
-				SyntheticObservationListPane<AbstractModelObservationTableModel> residualsPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
-						residualsTableModel, summary);
+    public SyntheticObservationListPane<AbstractModelObservationTableModel> getResidualsListPane(AnalysisType type,
+            IModel model) {
+        SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
+        String key = model.getDescription();
 
-				rawDataResidualComponents.put(key, residualsPane);
-			}
+        switch (type) {
+        case RAW_DATA:
+            if (!rawDataResidualComponents.containsKey(key)) {
+                RawDataModelObservationTableModel residualsTableModel = new RawDataModelObservationTableModel(
+                        model.getResiduals(), SeriesType.Residuals);
+                String summary = model.toString();
+                SyntheticObservationListPane<AbstractModelObservationTableModel> residualsPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
+                        residualsTableModel, summary);
 
-			pane = rawDataResidualComponents.get(key);
-			break;
+                rawDataResidualComponents.put(key, residualsPane);
+            }
 
-		case PHASE_PLOT:
-			key = getPhasedModelKey(model);
+            pane = rawDataResidualComponents.get(key);
+            break;
 
-			if (!phasedResidualComponents.containsKey(key)) {
-				// Set the residual list's phases according to the last phase
-				// change.
-				// It's okay to modify the original data.
-				PhaseCalcs.setPhases(model.getResiduals(), epoch, period);
+        case PHASE_PLOT:
+            key = getPhasedModelKey(model);
 
-				// Create model table model and GUI component since they have
-				// not been.
-				PhasePlotModelObservationTableModel residualsTableModel = new PhasePlotModelObservationTableModel(
-						model.getResiduals(), SeriesType.Residuals);
-				String summary = model.toString();
-				SyntheticObservationListPane<AbstractModelObservationTableModel> residualsPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
-						residualsTableModel, summary);
+            if (!phasedResidualComponents.containsKey(key)) {
+                // Set the residual list's phases according to the last phase
+                // change.
+                // It's okay to modify the original data.
+                PhaseCalcs.setPhases(model.getResiduals(), epoch, period);
 
-				phasedResidualComponents.put(key, residualsPane);
-			}
+                // Create model table model and GUI component since they have
+                // not been.
+                PhasePlotModelObservationTableModel residualsTableModel = new PhasePlotModelObservationTableModel(
+                        model.getResiduals(), SeriesType.Residuals);
+                String summary = model.toString();
+                SyntheticObservationListPane<AbstractModelObservationTableModel> residualsPane = new SyntheticObservationListPane<AbstractModelObservationTableModel>(
+                        residualsTableModel, summary);
 
-			pane = phasedResidualComponents.get(key);
-			break;
-		}
+                phasedResidualComponents.put(key, residualsPane);
+            }
 
-		return pane;
-	}
+            pane = phasedResidualComponents.get(key);
+            break;
+        }
 
-	// ** Stats info methods **
+        return pane;
+    }
 
-	/**
-	 * Add a statistics information string.
-	 * 
-	 * @param key
-	 *            The key against which this information is to be stored.
-	 * @param info
-	 *            The information string to be added.
-	 */
-	public void addStatsInfo(String key, String info) {
-		statsInfo.put(key, info);
-	}
+    // ** Stats info methods **
 
-	/**
-	 * @return the statsInfo
-	 */
-	public Map<String, String> getStatsInfo() {
-		return statsInfo;
-	}
+    /**
+     * Add a statistics information string.
+     * 
+     * @param key  The key against which this information is to be stored.
+     * @param info The information string to be added.
+     */
+    public void addStatsInfo(String key, String info) {
+        statsInfo.put(key, info);
+    }
 
-	// Returns a mean observation change (binning result) listener.
-	protected Listener<BinningResult> createBinChangeListener() {
-		return new Listener<BinningResult>() {
-			public void update(BinningResult info) {
-				updateAnovaInfo(info);
-			}
+    /**
+     * @return the statsInfo
+     */
+    public Map<String, String> getStatsInfo() {
+        return statsInfo;
+    }
 
-			public boolean canBeRemoved() {
-				return false;
-			}
-		};
-	}
+    // Returns a mean observation change (binning result) listener.
+    protected Listener<BinningResult> createBinChangeListener() {
+        return new Listener<BinningResult>() {
+            public void update(BinningResult info) {
+                updateAnovaInfo(info);
+            }
 
-	/**
-	 * Update the anova information from a binning result.
-	 * 
-	 * @param binningResult
-	 *            The binning result to use.
-	 */
-	public void updateAnovaInfo(BinningResult binningResult) {
-		addStatsInfo("Mean Source Series", binningResult.getSeries()
-				.getDescription());
+            public boolean canBeRemoved() {
+                return false;
+            }
+        };
+    }
 
-		addStatsInfo("anova", createAnovaText(binningResult));
-	}
+    /**
+     * Update the anova information from a binning result.
+     * 
+     * @param binningResult The binning result to use.
+     */
+    public void updateAnovaInfo(BinningResult binningResult) {
+        addStatsInfo("Mean Source Series", binningResult.getSeries().getDescription());
 
-	// Returns ANOVA result text suitable for display.
-	public String createAnovaText(BinningResult binningResult) {
-		return binningResult.createAnovaText();
-	}
+        addStatsInfo("anova", createAnovaText(binningResult));
+    }
 
-	// ** Filter-related methods **
+    // Returns ANOVA result text suitable for display.
+    public String createAnovaText(BinningResult binningResult) {
+        return binningResult.createAnovaText();
+    }
 
-	/**
-	 * Return the name of the next untitled filter.
-	 * 
-	 * @return the next untitled filter name
-	 */
-	public String getNextUntitledFilterName() {
-		filterNum++;
-		return "Untitled Filter " + filterNum;
-	}
+    // ** Filter-related methods **
 
-	// Helpers
+    /**
+     * Return the name of the next untitled filter.
+     * 
+     * @return the next untitled filter name
+     */
+    public String getNextUntitledFilterName() {
+        filterNum++;
+        return "Untitled Filter " + filterNum;
+    }
 
-	/**
-	 * Returns a unique phase model key for a model given the current epoch and
-	 * period associated with a phase change.
-	 * 
-	 * @param model
-	 *            The model whose description we will use as part of the key.
-	 * @return The unique key from the tuple: <description, epoch, period>.
-	 */
-	private String getPhasedModelKey(IModel model) {
-		return String.format("%s:e=%f,p=%f", model.getDescription(), epoch,
-				period);
-	}
+    // Helpers
 
-	/**
-	 * Initialise (or reset) data members
-	 */
-	public void init() {
+    /**
+     * Returns a unique phase model key for a model given the current epoch and
+     * period associated with a phase change.
+     * 
+     * @param model The model whose description we will use as part of the key.
+     * @return The unique key from the tuple: <description, epoch, period>.
+     */
+    private String getPhasedModelKey(IModel model) {
+        return String.format("%s:e=%f,p=%f", model.getDescription(), epoch, period);
+    }
+
+    /**
+     * Initialise (or reset) data members
+     */
+    public void init() {
         phasePlotExists = false;
         epoch = 0;
         period = 0;
 
-	    // model maps
-	    if (rawDataModelComponents == null) {
-	        rawDataModelComponents = new HashMap<String, SyntheticObservationListPane<AbstractModelObservationTableModel>>();
-	    }
-	    rawDataModelComponents.clear();
+        // model maps
+        if (rawDataModelComponents == null) {
+            rawDataModelComponents = new HashMap<String, SyntheticObservationListPane<AbstractModelObservationTableModel>>();
+        }
+        rawDataModelComponents.clear();
 
         if (phasedModelComponents == null) {
             phasedModelComponents = new HashMap<String, SyntheticObservationListPane<AbstractModelObservationTableModel>>();
@@ -342,12 +357,12 @@ public class DocumentManager {
         }
         phasedResidualComponents.clear();
 
-	    // Boolean maps
-	    if (showErrorBars == null) {
+        // Boolean maps
+        if (showErrorBars == null) {
             showErrorBars = new HashMap<AnalysisType, Boolean>();
-	    }
-	    showErrorBars.put(AnalysisType.RAW_DATA, true);
-	    showErrorBars.put(AnalysisType.PHASE_PLOT, true);
+        }
+        showErrorBars.put(AnalysisType.RAW_DATA, true);
+        showErrorBars.put(AnalysisType.PHASE_PLOT, true);
 
         if (showCrossHairs == null) {
             showCrossHairs = new HashMap<AnalysisType, Boolean>();
@@ -378,60 +393,59 @@ public class DocumentManager {
             statsInfo = new TreeMap<String, String>();
         }
         statsInfo.clear();
-	}
+    }
 
-	/**
-	 * Return a phase change listener that updates epoch and period information
-	 * in preparation for creating or retrieving phase plot components.<br/>
-	 * TODO: when we have finally unified observations as a single list across
-	 * all models, a listener for this message can call setPhases() on that
-	 * list.
-	 */
-	public Listener<PhaseChangeMessage> createPhaseChangeListener() {
-		return new Listener<PhaseChangeMessage>() {
-			@Override
-			public void update(PhaseChangeMessage info) {
-				phasePlotExists = true;
-				epoch = info.getEpoch();
-				period = info.getPeriod();
-			}
+    /**
+     * Return a phase change listener that updates epoch and period information in
+     * preparation for creating or retrieving phase plot components.<br/>
+     * TODO: when we have finally unified observations as a single list across all
+     * models, a listener for this message can call setPhases() on that list.
+     */
+    public Listener<PhaseChangeMessage> createPhaseChangeListener() {
+        return new Listener<PhaseChangeMessage>() {
+            @Override
+            public void update(PhaseChangeMessage info) {
+                phasePlotExists = true;
+                epoch = info.getEpoch();
+                period = info.getPeriod();
+            }
 
-			@Override
-			public boolean canBeRemoved() {
-				return false;
-			}
-		};
-	}
+            @Override
+            public boolean canBeRemoved() {
+                return false;
+            }
+        };
+    }
 
-	/**
-	 * Find and return the active window or null if one does not exist, e.g. the
-	 * case where the UI is that of an applet.
-	 */
-	public static Window findActiveWindow() {
-		Window wdw = null;
+    /**
+     * Find and return the active window or null if one does not exist, e.g. the
+     * case where the UI is that of an applet.
+     */
+    public static Window findActiveWindow() {
+        Window wdw = null;
 
-		IMainUI ui = Mediator.getUI();
+        IMainUI ui = Mediator.getUI();
 
-		if (ui != null) {
-			if (ui.getUiType() == UIType.DESKTOP) {
-				if (Window.getWindows().length > 0) {
-					for (Window window : Window.getWindows()) {
-						// At least find the main window...
-						if (window instanceof org.aavso.tools.vstar.ui.MainFrame) {
-							wdw = window;
-						}
-						// ...even better if it's the focus owner. If nothing
-						// else, by the end of the loop, we should have found
-						// the main window, whether or not it has the focus.
-						if (window.isFocusOwner()) {
-							wdw = window;
-							break;
-						}
-					}
-				}
-			}
-		}
+        if (ui != null) {
+            if (ui.getUiType() == UIType.DESKTOP) {
+                if (Window.getWindows().length > 0) {
+                    for (Window window : Window.getWindows()) {
+                        // At least find the main window...
+                        if (window instanceof org.aavso.tools.vstar.ui.MainFrame) {
+                            wdw = window;
+                        }
+                        // ...even better if it's the focus owner. If nothing
+                        // else, by the end of the loop, we should have found
+                        // the main window, whether or not it has the focus.
+                        if (window.isFocusOwner()) {
+                            wdw = window;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
-		return wdw;
-	}
+        return wdw;
+    }
 }

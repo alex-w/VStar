@@ -52,253 +52,257 @@ import org.jfree.chart.title.Title;
 @SuppressWarnings("serial")
 public class ObservationAndMeanPlotPane extends AbstractObservationPlotPane<ObservationAndMeanPlotModel> {
 
-	private DocumentManager docMgr;
+    private DocumentManager docMgr;
 
-	private String xyMsgFormat;
+    private String xyMsgFormat;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param title       The title for the chart.
-	 * @param subTitle    The sub-title for the chart (may be null).
-	 * @param domainTitle The domain title (e.g. Julian Date, phase).
-	 * @param rangeTitle  The range title (e.g. magnitude).
-	 * @param obsModel    The data model to plot.
-	 * @param bounds      The bounding box to which to set the chart's preferred
-	 *                    size.
-	 * @param retriever   The observation retriever for observations in this plot.
-	 */
-	public ObservationAndMeanPlotPane(String title, String subTitle, String domainTitle, String rangeTitle,
-			ObservationAndMeanPlotModel obsAndMeanModel, Dimension bounds, AbstractObservationRetriever retriever) {
+    /**
+     * Constructor
+     * 
+     * @param title        The title for the chart.
+     * @param subTitle     The sub-title for the chart (may be null).
+     * @param domainTitle  The domain title (e.g. Julian Date, phase).
+     * @param rangeTitle   The range title (e.g. magnitude).
+     * @param obsModel     The data model to plot.
+     * @param bounds       The bounding box to which to set the chart's preferred
+     *                     size.
+     * @param retriever    The observation retriever for observations in this plot.
+     * @param analysisType The analysis type associated with this plot.
+     */
+    public ObservationAndMeanPlotPane(String title, String subTitle, String domainTitle, String rangeTitle,
+            ObservationAndMeanPlotModel obsAndMeanModel, Dimension bounds, AbstractObservationRetriever retriever,
+            AnalysisType analysisType) {
 
-		super(title, subTitle, domainTitle, rangeTitle, obsAndMeanModel, bounds, retriever);
+        super(title, subTitle, domainTitle, rangeTitle, obsAndMeanModel, bounds, retriever);
 
-		docMgr = Mediator.getInstance().getDocumentManager();
+        docMgr = Mediator.getInstance().getDocumentManager();
 
-		// Add sub-title, if any.
-		if (subTitle != null && !"".equals(subTitle.trim())) {
-			List<Title> subTitles = chart.getSubtitles();
-			subTitles.add(new TextTitle(subTitle));
-			chart.setSubtitles(subTitles);
-		}
+        // Add sub-title, if any.
+        if (subTitle != null && !"".equals(subTitle.trim())) {
+            List<Title> subTitles = chart.getSubtitles();
+            subTitles.add(new TextTitle(subTitle));
+            chart.setSubtitles(subTitles);
+        }
 
-		// Format for observation tool-tip.
-		xyMsgFormat = "%s (%s), %s";
+        // Format for observation tool-tip.
+        xyMsgFormat = "%s (%s), %s";
 
-		// Set the means series color.
-		int meanSeriesNum = obsAndMeanModel.getMeansSeriesNum();
-		if (meanSeriesNum != ObservationAndMeanPlotModel.NO_SERIES) {
-			this.getRenderer().setSeriesPaint(meanSeriesNum, SeriesType.getColorFromSeries(SeriesType.MEANS));
-		}
+        // Set the means series color.
+        int meanSeriesNum = obsAndMeanModel.getMeansSeriesNum();
+        if (meanSeriesNum != ObservationAndMeanPlotModel.NO_SERIES) {
+            this.getRenderer().setSeriesPaint(meanSeriesNum, SeriesType.getColorFromSeries(SeriesType.MEANS));
+        }
 
-		// Update joined series to ensure that the means series is initially
-		// joined since the base class won't include it in its set.
-		setJoinedSeries();
+        // Update joined series to ensure that the means series is initially
+        // joined since the base class won't include it in its set.
+        setJoinedSeries();
 
-		// Update plot pane from state of user-controllable characteristics
-		getRenderer().setDrawYError(docMgr.shouldShowErrorBars());
+        // Update plot pane from state of user-controllable characteristics
+        getRenderer().setDrawYError(docMgr.shouldShowErrorBars(analysisType));
 
-		getChartPanel().getChart().getXYPlot().setDomainCrosshairVisible(docMgr.shouldShowCrossHairs());
+        getChartPanel().getChart().getXYPlot().setDomainCrosshairVisible(docMgr.shouldShowCrossHairs(analysisType));
 
-		getChartPanel().getChart().getXYPlot().setRangeCrosshairVisible(docMgr.shouldShowCrossHairs());
+        getChartPanel().getChart().getXYPlot().setRangeCrosshairVisible(docMgr.shouldShowCrossHairs(analysisType));
 
-		getChartPanel().getChart().getXYPlot().getRangeAxis().setInverted(docMgr.shouldInvertRange());
+        getChartPanel().getChart().getXYPlot().getRangeAxis().setInverted(docMgr.shouldInvertRange(analysisType));
 
-		getChartPanel().getChart().getXYPlot().setSeriesRenderingOrder(
-				docMgr.shouldInvertSeriesOrder() ? SeriesRenderingOrder.REVERSE : SeriesRenderingOrder.FORWARD);
+        getChartPanel().getChart().getXYPlot().setSeriesRenderingOrder(
+                docMgr.shouldInvertSeriesOrder(analysisType) ? SeriesRenderingOrder.REVERSE : SeriesRenderingOrder.FORWARD);
 
-		if (meanSeriesNum != ObservationAndMeanPlotModel.NO_SERIES) {
-			// This may override the action of setJoinedSeries() depending upon state of
-			// this user-controllable characteristic
-			getRenderer().setSeriesLinesVisible(obsModel.getMeansSeriesNum(), docMgr.shouldJoinMeans());
-		}
-	}
+        if (meanSeriesNum != ObservationAndMeanPlotModel.NO_SERIES) {
+            // This may override the action of setJoinedSeries() depending upon state of
+            // this user-controllable characteristic
+            getRenderer().setSeriesLinesVisible(obsModel.getMeansSeriesNum(), docMgr.shouldJoinMeans(analysisType));
+        }
+    }
 
-	/**
-	 * Constructor
-	 * 
-	 * @param title     The title for the chart.
-	 * @param subTitle  The sub-title for the chart.
-	 * @param obsModel  The data model to plot. mean plot pane.
-	 * @param bounds    The bounding box to which to set the chart's preferred size.
-	 * @param retriever The observation retriever for observations in this plot.
-	 */
-	public ObservationAndMeanPlotPane(String title, String subTitle, ObservationAndMeanPlotModel obsAndMeanModel,
-			Dimension bounds, AbstractObservationRetriever retriever) {
+    /**
+     * Constructor
+     * 
+     * @param title        The title for the chart.
+     * @param subTitle     The sub-title for the chart.
+     * @param obsModel     The data model to plot.
+     * @param bounds       The bounding box to which to set the chart's preferred
+     *                     size.
+     * @param retriever    The observation retriever for observations in this plot.
+     * @param analysisType The analysis type associated with this plot.
+     */
+    public ObservationAndMeanPlotPane(String title, String subTitle, ObservationAndMeanPlotModel obsAndMeanModel,
+            Dimension bounds, AbstractObservationRetriever retriever, AnalysisType analysisType) {
 
-		this(title, subTitle, getTimeAxisLabel(retriever),
-				getBrightnessAxisLabel(retriever), obsAndMeanModel, bounds, retriever);
-	}
+        this(title, subTitle, getTimeAxisLabel(retriever), getBrightnessAxisLabel(retriever), obsAndMeanModel, bounds,
+                retriever, analysisType);
+    }
 
-	/**
-	 * @return The observation model.
-	 */
-	public ObservationAndMeanPlotModel getObsModel() {
-		return obsModel;
-	}
+    /**
+     * @return The observation model.
+     */
+    public ObservationAndMeanPlotModel getObsModel() {
+        return obsModel;
+    }
 
-	/**
-	 * @param meanSourceSeriesNum the meanSourceSeriesNum to set
-	 */
-	public void setMeanSourceSeriesNum(int meanSourceSeriesNum) {
-		obsModel.setMeanSourceSeriesNum(meanSourceSeriesNum);
-	}
+    /**
+     * @param meanSourceSeriesNum the meanSourceSeriesNum to set
+     */
+    public void setMeanSourceSeriesNum(int meanSourceSeriesNum) {
+        obsModel.setMeanSourceSeriesNum(meanSourceSeriesNum);
+    }
 
-	/**
-	 * Attempt to create a new mean series with the specified number of time
-	 * elements per bin.
-	 * 
-	 * @param timeElementsInBin The number of days or phase steps to be created per
-	 *                          bin.
-	 * @return Whether or not the series was changed.
-	 */
-	public boolean changeMeansSeries(double timeElementsInBin) {
-		return obsModel.changeMeansSeries(timeElementsInBin);
-	}
+    /**
+     * Attempt to create a new mean series with the specified number of time
+     * elements per bin.
+     * 
+     * @param timeElementsInBin The number of days or phase steps to be created per
+     *                          bin.
+     * @return Whether or not the series was changed.
+     */
+    public boolean changeMeansSeries(double timeElementsInBin) {
+        return obsModel.changeMeansSeries(timeElementsInBin);
+    }
 
-	// @Override
-	// protected void setSeriesVisibility() {
-	//
-	// super.setSeriesVisibility();
-	//
-	// Map<SeriesType, Boolean> seriesVisibilityMap = obsModel
-	// .getSeriesVisibilityMap();
-	//
-	// boolean isModelFuncVisible = seriesVisibilityMap
-	// .get(SeriesType.ModelFunction);
-	//
-	// if (isModelFuncVisible && obsModel.getModelFunction() != null) {
-	// ContinuousModelPlotModel modelFuncModel = new ContinuousModelPlotModel(
-	// obsModel.getModelFunction());
-	//
-	// JFreeChart modelFuncPlot = ChartFactory.createXYLineChart("", "",
-	// "", modelFuncModel, PlotOrientation.VERTICAL, false, false,
-	// false);
-	//
-	// int modelFuncSeriesNum = obsModel.getSrcTypeToSeriesNumMap().get(
-	// SeriesType.ModelFunction);
-	//
-	// chart.getXYPlot().setDataset(modelFuncSeriesNum, modelFuncModel);
-	// chart.getXYPlot().setRenderer(modelFuncSeriesNum,
-	// modelFuncPlot.getXYPlot().getRenderer());
-	// Color color = SeriesType
-	// .getColorFromSeries(SeriesType.ModelFunction);
-	// chart.getXYPlot().getRenderer(modelFuncSeriesNum).setSeriesPaint(
-	// modelFuncSeriesNum, color);
-	// chart.getXYPlot().getRenderer(modelFuncSeriesNum).setSeriesVisible(
-	// modelFuncSeriesNum, true);
-	// }
-	// }
+    // @Override
+    // protected void setSeriesVisibility() {
+    //
+    // super.setSeriesVisibility();
+    //
+    // Map<SeriesType, Boolean> seriesVisibilityMap = obsModel
+    // .getSeriesVisibilityMap();
+    //
+    // boolean isModelFuncVisible = seriesVisibilityMap
+    // .get(SeriesType.ModelFunction);
+    //
+    // if (isModelFuncVisible && obsModel.getModelFunction() != null) {
+    // ContinuousModelPlotModel modelFuncModel = new ContinuousModelPlotModel(
+    // obsModel.getModelFunction());
+    //
+    // JFreeChart modelFuncPlot = ChartFactory.createXYLineChart("", "",
+    // "", modelFuncModel, PlotOrientation.VERTICAL, false, false,
+    // false);
+    //
+    // int modelFuncSeriesNum = obsModel.getSrcTypeToSeriesNumMap().get(
+    // SeriesType.ModelFunction);
+    //
+    // chart.getXYPlot().setDataset(modelFuncSeriesNum, modelFuncModel);
+    // chart.getXYPlot().setRenderer(modelFuncSeriesNum,
+    // modelFuncPlot.getXYPlot().getRenderer());
+    // Color color = SeriesType
+    // .getColorFromSeries(SeriesType.ModelFunction);
+    // chart.getXYPlot().getRenderer(modelFuncSeriesNum).setSeriesPaint(
+    // modelFuncSeriesNum, color);
+    // chart.getXYPlot().getRenderer(modelFuncSeriesNum).setSeriesVisible(
+    // modelFuncSeriesNum, true);
+    // }
+    // }
 
-	// From ChartMouseListener interface.
-	// If the mouse is over a data point, set its tool-tip with JD and
-	// magnitude.
-	public void chartMouseMoved(ChartMouseEvent event) {
-		ChartEntity entity = event.getEntity();
-		if (entity instanceof XYItemEntity) {
-			XYItemEntity item = (XYItemEntity) entity;
-			// Dataset may not be same as primary observation model, e.g.
-			// could be model function dataset (continuous model).
-			if (item.getDataset() == obsModel) {
-				ValidObservation ob = obsModel.getValidObservation(item.getSeriesIndex(), item.getItem());
+    // From ChartMouseListener interface.
+    // If the mouse is over a data point, set its tool-tip with JD and
+    // magnitude.
+    public void chartMouseMoved(ChartMouseEvent event) {
+        ChartEntity entity = event.getEntity();
+        if (entity instanceof XYItemEntity) {
+            XYItemEntity item = (XYItemEntity) entity;
+            // Dataset may not be same as primary observation model, e.g.
+            // could be model function dataset (continuous model).
+            if (item.getDataset() == obsModel) {
+                ValidObservation ob = obsModel.getValidObservation(item.getSeriesIndex(), item.getItem());
 
-				String xyMsg = String.format(xyMsgFormat, NumericPrecisionPrefs.formatTime(ob.getJD()),
-						ob.getDateInfo().getCalendarDate(), NumericPrecisionPrefs.formatMag(ob.getMag()));
-				item.setToolTipText(xyMsg);
-			}
-		}
-	}
+                String xyMsg = String.format(xyMsgFormat, NumericPrecisionPrefs.formatTime(ob.getJD()),
+                        ob.getDateInfo().getCalendarDate(), NumericPrecisionPrefs.formatMag(ob.getMag()));
+                item.setToolTipText(xyMsg);
+            }
+        }
+    }
 
-	// Returns an observation selection listener.
-	protected Listener<ObservationSelectionMessage> createObservationSelectionListener() {
-		return new Listener<ObservationSelectionMessage>() {
+    // Returns an observation selection listener.
+    protected Listener<ObservationSelectionMessage> createObservationSelectionListener() {
+        return new Listener<ObservationSelectionMessage>() {
 
-			public void update(ObservationSelectionMessage message) {
-				// Move the cross hairs if we have date information since
-				// this plot's domain is JD.
-				if (message.getSource() != this && message.getObservation().getDateInfo() != null) {
-					chart.getXYPlot().setDomainCrosshairValue(message.getObservation().getJD());
-					chart.getXYPlot().setRangeCrosshairValue(message.getObservation().getMag());
+            public void update(ObservationSelectionMessage message) {
+                // Move the cross hairs if we have date information since
+                // this plot's domain is JD.
+                if (message.getSource() != this && message.getObservation().getDateInfo() != null) {
+                    chart.getXYPlot().setDomainCrosshairValue(message.getObservation().getJD());
+                    chart.getXYPlot().setRangeCrosshairValue(message.getObservation().getMag());
 
-					updateSelectionFromObservation(message.getObservation());
-				}
-			}
+                    updateSelectionFromObservation(message.getObservation());
+                }
+            }
 
-			public boolean canBeRemoved() {
-				return true;
-			}
-		};
-	}
+            public boolean canBeRemoved() {
+                return true;
+            }
+        };
+    }
 
-	// Returns a zoom request listener.
-	protected Listener<ZoomRequestMessage> createZoomRequestListener() {
-		return new Listener<ZoomRequestMessage>() {
-			public void update(ZoomRequestMessage info) {
-				if (Mediator.getInstance().getAnalysisType() == AnalysisType.RAW_DATA
-						&& Mediator.getInstance().getViewMode() == ViewModeType.PLOT_OBS_MODE) {
-					doZoom(info.getZoomType());
-				}
-			}
+    // Returns a zoom request listener.
+    protected Listener<ZoomRequestMessage> createZoomRequestListener() {
+        return new Listener<ZoomRequestMessage>() {
+            public void update(ZoomRequestMessage info) {
+                if (Mediator.getInstance().getAnalysisType() == AnalysisType.RAW_DATA
+                        && Mediator.getInstance().getViewMode() == ViewModeType.PLOT_OBS_MODE) {
+                    doZoom(info.getZoomType());
+                }
+            }
 
-			public boolean canBeRemoved() {
-				return true;
-			}
-		};
-	}
+            public boolean canBeRemoved() {
+                return true;
+            }
+        };
+    }
 
-	// Returns a pan request listener.
-	protected Listener<PanRequestMessage> createPanRequestListener() {
-		return new Listener<PanRequestMessage>() {
-			@Override
-			public void update(PanRequestMessage msg) {
-				final PlotRenderingInfo plotInfo = chartPanel.getChartRenderingInfo().getPlotInfo();
+    // Returns a pan request listener.
+    protected Listener<PanRequestMessage> createPanRequestListener() {
+        return new Listener<PanRequestMessage>() {
+            @Override
+            public void update(PanRequestMessage msg) {
+                final PlotRenderingInfo plotInfo = chartPanel.getChartRenderingInfo().getPlotInfo();
 
-				final Point2D source = new Point2D.Double(0, 0);
+                final Point2D source = new Point2D.Double(0, 0);
 
-				double percentage = 0.01;
+                double percentage = 0.01;
 
-				XYPlot plot = chart.getXYPlot();
-				NewStarMessage newStarMsg = Mediator.getInstance().getLatestNewStarMessage();
-				List<ValidObservation> obs = newStarMsg.getObservations();
+                XYPlot plot = chart.getXYPlot();
+                NewStarMessage newStarMsg = Mediator.getInstance().getLatestNewStarMessage();
+                List<ValidObservation> obs = newStarMsg.getObservations();
 
-				switch (msg.getPanType()) {
-				case LEFT:
-					if (plot.getDomainAxis().getLowerBound() >= obs.get(0).getJD()) {
-						plot.panDomainAxes(-percentage, plotInfo, source);
-					} else {
-						if (newStarMsg.getNewStarType() == NewStarType.NEW_STAR_FROM_DATABASE) {
-							// TODO: ask whether to read more AID data before
-							// last JD
-						}
-					}
-					break;
-				case RIGHT:
-					if (plot.getDomainAxis().getUpperBound() <= obs.get(obs.size() - 1).getJD()) {
-						plot.panDomainAxes(percentage, plotInfo, source);
-					} else {
-						if (newStarMsg.getNewStarType() == NewStarType.NEW_STAR_FROM_DATABASE) {
-							// TODO: ask whether to read more AID data after
-							// last JD
-						}
-					}
-					break;
-				case UP:
-					if (newStarMsg.getMinMag() <= plot.getRangeAxis().getLowerBound()) {
-						plot.panRangeAxes(percentage, plotInfo, source);
-					}
-					break;
-				case DOWN:
-					if (newStarMsg.getMaxMag() >= plot.getRangeAxis().getUpperBound()) {
-						plot.panRangeAxes(-percentage, plotInfo, source);
-					}
-					break;
-				}
-			}
+                switch (msg.getPanType()) {
+                case LEFT:
+                    if (plot.getDomainAxis().getLowerBound() >= obs.get(0).getJD()) {
+                        plot.panDomainAxes(-percentage, plotInfo, source);
+                    } else {
+                        if (newStarMsg.getNewStarType() == NewStarType.NEW_STAR_FROM_DATABASE) {
+                            // TODO: ask whether to read more AID data before
+                            // last JD
+                        }
+                    }
+                    break;
+                case RIGHT:
+                    if (plot.getDomainAxis().getUpperBound() <= obs.get(obs.size() - 1).getJD()) {
+                        plot.panDomainAxes(percentage, plotInfo, source);
+                    } else {
+                        if (newStarMsg.getNewStarType() == NewStarType.NEW_STAR_FROM_DATABASE) {
+                            // TODO: ask whether to read more AID data after
+                            // last JD
+                        }
+                    }
+                    break;
+                case UP:
+                    if (newStarMsg.getMinMag() <= plot.getRangeAxis().getLowerBound()) {
+                        plot.panRangeAxes(percentage, plotInfo, source);
+                    }
+                    break;
+                case DOWN:
+                    if (newStarMsg.getMaxMag() >= plot.getRangeAxis().getUpperBound()) {
+                        plot.panRangeAxes(-percentage, plotInfo, source);
+                    }
+                    break;
+                }
+            }
 
-			@Override
-			public boolean canBeRemoved() {
-				return true;
-			}
-		};
-	}
+            @Override
+            public boolean canBeRemoved() {
+                return true;
+            }
+        };
+    }
 }
