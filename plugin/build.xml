@@ -1,5 +1,6 @@
 
-<project name="plugin" default="install" basedir=".">
+<project name="plugin" default="install" basedir="."
+	xmlns:jacoco="antlib:org.jacoco.ant">
 	<description>Generic build file to make plugin building easier.</description>
 
 	<property name="src" location="src/org/aavso/tools/vstar/external/plugin" />
@@ -12,11 +13,16 @@
 	<property name="build" location="build" />
 	<property name="test_build" location="test/build/" />
 	<property name="test_report" location="test_report" />
+	<property name="coverage_report" location="test_report/coverage" />
 	<property name="build.classes" location="./build" />
 	<property name="dist" location="dist/" />
 	<property name="dist_lib" location="dist_lib/" />
 	<property name="vstar_plugins_zip_dir" location="vstar-plugins" />
 	<property name="plugins_list_file" value=".plugins.lst" />
+
+	<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+		<classpath path="../extlib/jacocoant.jar" />
+	</taskdef>
 
 	<target name="init">
 		<!-- Create the time stamp -->
@@ -40,8 +46,8 @@
 		</path>
 		<mkdir dir="${build}" />
 		<!-- Compile the java code from ${src} into ${build} -->
-		<javac compiler="modern" source="17" target="17" encoding="UTF-8" srcdir="${src_lib}" destdir="${build}" classpathref="libs" />
-		<javac compiler="modern" source="17" target="17" encoding="UTF-8" srcdir="${src}" destdir="${build}" classpathref="libs" />
+		<javac compiler="modern" source="17" target="17" encoding="UTF-8" srcdir="${src_lib}" destdir="${build}" classpathref="libs" debug="on" debuglevel="lines,vars,source" />
+		<javac compiler="modern" source="17" target="17" encoding="UTF-8" srcdir="${src}" destdir="${build}" classpathref="libs" debug="on" debuglevel="lines,vars,source" />
 	</target>
 
 	<target name="dist" depends="compile" description="generate the distribution">
@@ -182,6 +188,71 @@
 		<fail status="1" message="One or more failures detected">
 			<condition>
 				<resourcecount when="greater" count="0" refid="build.failures" />
+			</condition>
+		</fail>
+	</target>
+
+	<target name="test-coverage" depends="compile_ut,install" description="Run unit tests with JaCoCo coverage">
+		<jacoco:coverage destfile="${test_report}/jacoco.exec">
+			<junit fork="yes" printsummary="withOutAndErr" showoutput="true">
+				<formatter type="plain" />
+
+				<jvmarg value="-ea" />
+
+				<batchtest todir="${test_report}" unless="testcase">
+					<fileset dir="${test_build}">
+						<include name="**/PluginTest.class" />
+					</fileset>
+				</batchtest>
+
+				<classpath refid="test.classpath" />
+			</junit>
+		</jacoco:coverage>
+	</target>
+
+	<target name="coverage-report" depends="test-coverage" description="Generate JaCoCo coverage report (HTML + XML)">
+		<mkdir dir="${coverage_report}" />
+		<jacoco:report>
+			<executiondata>
+				<file file="${test_report}/jacoco.exec" />
+			</executiondata>
+			<structure name="VStar Plugins">
+				<classfiles>
+					<fileset dir="${build.classes}" />
+				</classfiles>
+				<sourcefiles encoding="UTF-8">
+					<fileset dir="${src}" />
+					<fileset dir="${src_lib}" />
+				</sourcefiles>
+			</structure>
+			<html destdir="${coverage_report}" />
+			<xml destfile="${coverage_report}/coverage.xml" />
+		</jacoco:report>
+		<echo message="Plugin coverage report: ${coverage_report}/index.html" />
+
+		<concat destfile="${test_report}/summary.txt">
+			<header filtering="no" trimleading="yes">
+                      Test Summary
+                      ============
+                </header>
+			<path>
+				<fileset dir="${test_report}" includes="TEST-*" />
+			</path>
+			<filterchain>
+				<linecontains>
+					<contains value="Tests run:" />
+				</linecontains>
+			</filterchain>
+		</concat>
+
+		<exec command="cat ${test_report}/summary.txt" />
+
+		<fileset id="coverage.build.failures" file="${test_report}/summary.txt">
+			<containsregexp expression="(Errors|Failures): [123456789]+" />
+		</fileset>
+		<fail status="1" message="One or more failures detected">
+			<condition>
+				<resourcecount when="greater" count="0" refid="coverage.build.failures" />
 			</condition>
 		</fail>
 	</target>

@@ -10,6 +10,9 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  pull-requests: write
+
 jobs:
   build:
 
@@ -19,22 +22,162 @@ jobs:
       matrix:
         java: [ '17', '21', '23' ]
 
-    name: Java ${{ matrix.Java }} Plugin UTs
+    name: Java ${{ matrix.java }} Plugin UTs
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Java
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v4
       with:
         java-version: ${{ matrix.java }}
+        distribution: 'temurin'
     - name: Create plugin dir
       run:
         mkdir -p ~/vstar_plugins
     - name: Create plugin libs dir
       run:
         mkdir -p ~/vstar_plugin_libs
-    - name: Build with Ant
+    - name: Build and test with coverage
+      id: tests
       run: |
         ant -noinput -buildfile build.xml dist
         cd plugin
-        ant -noinput -buildfile build.xml test
+        ant -noinput -buildfile build.xml coverage-report
+
+    - name: Extract test and coverage metrics
+      if: always()
+      id: metrics
+      run: |
+        SUMMARY="plugin/test_report/summary.txt"
+        COV_XML="plugin/test_report/coverage/coverage.xml"
+
+        TESTS=0; FAILURES=0; ERRORS=0
+        if [ -f "$SUMMARY" ]; then
+          while IFS= read -r line; do
+            t=$(echo "$line" | grep -oP 'Tests run: \K[0-9]+' || true)
+            f=$(echo "$line" | grep -oP 'Failures: \K[0-9]+' || true)
+            e=$(echo "$line" | grep -oP 'Errors: \K[0-9]+' || true)
+            [ -n "$t" ] && TESTS=$((TESTS + t))
+            [ -n "$f" ] && FAILURES=$((FAILURES + f))
+            [ -n "$e" ] && ERRORS=$((ERRORS + e))
+          done < "$SUMMARY"
+        fi
+        PASSED=$((TESTS - FAILURES - ERRORS))
+
+        LINE_COV="N/A"; BRANCH_COV="N/A"
+        if [ -f "$COV_XML" ]; then
+          LINE_M=$(grep -oP '<counter type="LINE" missed="\K[0-9]+' "$COV_XML" | tail -1 || true)
+          LINE_C=$(grep -oP '<counter type="LINE" missed="[0-9]+" covered="\K[0-9]+' "$COV_XML" | tail -1 || true)
+          BRANCH_M=$(grep -oP '<counter type="BRANCH" missed="\K[0-9]+' "$COV_XML" | tail -1 || true)
+          BRANCH_C=$(grep -oP '<counter type="BRANCH" missed="[0-9]+" covered="\K[0-9]+' "$COV_XML" | tail -1 || true)
+          if [ -n "$LINE_M" ] && [ -n "$LINE_C" ]; then
+            TOTAL_L=$((LINE_M + LINE_C))
+            if [ "$TOTAL_L" -gt 0 ]; then
+              LINE_COV="$((LINE_C * 100 / TOTAL_L))%"
+            fi
+          fi
+          if [ -n "$BRANCH_M" ] && [ -n "$BRANCH_C" ]; then
+            TOTAL_B=$((BRANCH_M + BRANCH_C))
+            if [ "$TOTAL_B" -gt 0 ]; then
+              BRANCH_COV="$((BRANCH_C * 100 / TOTAL_B))%"
+            fi
+          fi
+        fi
+
+        echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+        echo "passed=$PASSED" >> "$GITHUB_OUTPUT"
+        echo "failures=$FAILURES" >> "$GITHUB_OUTPUT"
+        echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
+        echo "line_cov=$LINE_COV" >> "$GITHUB_OUTPUT"
+        echo "branch_cov=$BRANCH_COV" >> "$GITHUB_OUTPUT"
+
+    - name: Post step summary
+      if: always() && steps.metrics.outputs.tests != '0'
+      run: |
+        STATUS="${{ steps.tests.outcome == 'success' && 'All tests passed' || 'Tests failed' }}"
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+        ## Plugin Unit Tests (Java ${{ matrix.java }})
+
+        **${STATUS}**
+
+        | Metric | Value |
+        |--------|-------|
+        | Tests | ${{ steps.metrics.outputs.tests }} |
+        | Passed | ${{ steps.metrics.outputs.passed }} |
+        | Failures | ${{ steps.metrics.outputs.failures }} |
+        | Errors | ${{ steps.metrics.outputs.errors }} |
+        | Line Coverage | ${{ steps.metrics.outputs.line_cov }} |
+        | Branch Coverage | ${{ steps.metrics.outputs.branch_cov }} |
+        EOF
+
+    - name: Comment on PR
+      if: >-
+        always() &&
+        github.event_name == 'pull_request' &&
+        matrix.java == '17' &&
+        steps.metrics.outputs.tests != '0'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const outcome = '${{ steps.tests.outcome }}';
+          const status = outcome === 'success' ? 'All tests passed' : 'Tests failed';
+          const tests = '${{ steps.metrics.outputs.tests }}';
+          const passed = '${{ steps.metrics.outputs.passed }}';
+          const failures = '${{ steps.metrics.outputs.failures }}';
+          const errors = '${{ steps.metrics.outputs.errors }}';
+          const lineCov = '${{ steps.metrics.outputs.line_cov }}';
+          const branchCov = '${{ steps.metrics.outputs.branch_cov }}';
+
+          const body = [
+            '## Plugin Unit Tests & Coverage',
+            '',
+            `**${status}** (Java 17)`,
+            '',
+            '| Metric | Value |',
+            '|--------|-------|',
+            `| Tests | ${tests} |`,
+            `| Passed | ${passed} |`,
+            `| Failures | ${failures} |`,
+            `| Errors | ${errors} |`,
+            `| Line Coverage | ${lineCov} |`,
+            `| Branch Coverage | ${branchCov} |`,
+            '',
+            '<details>',
+            '<summary>Coverage details</summary>',
+            '',
+            'Download the **plugin-coverage-report-java17** artifact for the full',
+            'JaCoCo HTML report with per-class breakdowns.',
+            '</details>',
+          ].join('\n');
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c =>
+            c.user.type === 'Bot' && c.body.startsWith('## Plugin Unit Tests & Coverage')
+          );
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body,
+            });
+          }
+
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-coverage-report-java${{ matrix.java }}
+        path: plugin/test_report/

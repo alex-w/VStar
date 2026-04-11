@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
 jobs:
   spotbugs:
     runs-on: ubuntu-latest
@@ -29,6 +34,93 @@ jobs:
 
     - name: Run SpotBugs
       run: ant -noinput -buildfile build.xml spotbugs
+
+    - name: Extract bug counts
+      if: always()
+      id: sb-counts
+      run: |
+        XML="test_report/spotbugs/spotbugsXml.xml"
+        if [ -f "$XML" ]; then
+          TOTAL=$(grep -c '<BugInstance' "$XML" || true)
+          HIGH=$(grep -c 'priority="1"' "$XML" || true)
+          MEDIUM=$(grep -c 'priority="2"' "$XML" || true)
+          LOW=$(grep -c 'priority="3"' "$XML" || true)
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "medium=$MEDIUM" >> "$GITHUB_OUTPUT"
+          echo "low=$LOW" >> "$GITHUB_OUTPUT"
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Post step summary
+      if: always() && steps.sb-counts.outputs.found == 'true'
+      run: |
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+        ## SpotBugs Analysis
+
+        | Priority | Count |
+        |----------|-------|
+        | **Total** | **${{ steps.sb-counts.outputs.total }}** |
+        | High | ${{ steps.sb-counts.outputs.high }} |
+        | Medium | ${{ steps.sb-counts.outputs.medium }} |
+        | Low | ${{ steps.sb-counts.outputs.low }} |
+        EOF
+
+    - name: Comment on PR
+      if: always() && github.event_name == 'pull_request' && steps.sb-counts.outputs.found == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const total = '${{ steps.sb-counts.outputs.total }}';
+          const high = '${{ steps.sb-counts.outputs.high }}';
+          const medium = '${{ steps.sb-counts.outputs.medium }}';
+          const low = '${{ steps.sb-counts.outputs.low }}';
+
+          const body = [
+            '## SpotBugs Analysis',
+            '',
+            '| Priority | Count |',
+            '|----------|-------|',
+            `| **Total** | **${total}** |`,
+            `| High | ${high} |`,
+            `| Medium | ${medium} |`,
+            `| Low | ${low} |`,
+            '',
+            '<details>',
+            '<summary>What does this mean?</summary>',
+            '',
+            'SpotBugs performs static analysis on Java bytecode to find potential bugs.',
+            'High-priority findings are most likely to be real defects. Download the',
+            '**spotbugs-report** artifact for the detailed HTML report.',
+            '</details>',
+          ].join('\n');
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c =>
+            c.user.type === 'Bot' && c.body.startsWith('## SpotBugs Analysis')
+          );
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body,
+            });
+          }
 
     - name: Upload SpotBugs report
       if: always()
