@@ -64,10 +64,15 @@ See the URL for the web page of each project for more information.
     * ANTLR4 http://www.antlr.org
        
 If you are a developer who wishes to contribute toward coding or 
-testing VStar, apart from JUnit 3 (junit.jar), the following libraries
-must be downloaded (e.g. from https://mvnrepository.com) for unit 
-testing purposes. Note that none of these libraries are redistributed
-as part of a VStar release.
+testing VStar, the following libraries are required for unit testing
+and CI purposes. None of these libraries are redistributed as part
+of a VStar release.
+
+  o JUnit 4 (test runner, required by pitest mutation testing)
+    - junit-4.12.jar
+    - hamcrest-core-1.3.jar
+    - Eclipse Public License 1.0 (not distributed with VStar releases)
+    - https://junit.org/junit4/
 
   o Property based testing framework
     - quicktheories-0.26.jar
@@ -91,7 +96,7 @@ under tools/spotbugs/ and used by the spotbugs Ant target. Run with:
 
 For nullness checking with the Checker Framework, the annotation
 types are in extlib and the checker processor is under tools:
-  ant checkerframework
+  ant checker
 
   o Checker Framework (3.54.1)
     - https://checkerframework.org
@@ -107,8 +112,4 @@ For mutation testing, additional libraries are required.
     - pitest-ant-1.15.3.jar
     - pitest-entry-1.15.3.jar
     - testng-7.9.0.jar
-    - JUnit 4 (or 5) required by pitest
-      o under EPL-1.0 licence: can't be linked or distributed with VStar
-        and not currently included here
-        - junit-4.12.jar
-        - hamcrest-core-1.3.jar
+    - JUnit 4 required by pitest (see above)
