@@ -1,0 +1,32 @@
+name: Checker Framework
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  nullness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    name: Nullness Checker
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Create plugin dirs
+      run: |
+        mkdir -p ~/vstar_plugins
+        mkdir -p ~/vstar_plugin_libs
+
+    - name: Run Checker Framework Nullness Checker
+      run: ant -noinput -buildfile build.xml checker

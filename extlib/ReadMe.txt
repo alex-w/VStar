@@ -89,6 +89,16 @@ under tools/spotbugs/ and used by the spotbugs Ant target. Run with:
     - tools/spotbugs/lib/
     - GNU Lesser General Public License, version 2.1
 
+For nullness checking with the Checker Framework, the annotation
+types are in extlib and the checker processor is under tools:
+  ant checkerframework
+
+  o Checker Framework (3.54.1)
+    - https://checkerframework.org
+    - extlib/checker-qual-3.54.1.jar (annotation types, MIT license)
+    - tools/checker-framework/checker-3.54.1.jar (processor, GPL-2.0 with Classpath Exception)
+    Currently runs with -Awarns (warnings only, does not fail the build).
+
 For mutation testing, additional libraries are required.
 
   o pitest mutation testing framework
