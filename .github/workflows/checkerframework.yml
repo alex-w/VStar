@@ -1,0 +1,126 @@
+name: Checker Framework
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  nullness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    name: Nullness Checker
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Create plugin dirs
+      run: |
+        mkdir -p ~/vstar_plugins
+        mkdir -p ~/vstar_plugin_libs
+
+    - name: Run Checker Framework Nullness Checker
+      run: ant -noinput -buildfile build.xml checker
+
+    - name: Extract warning counts
+      if: always()
+      id: cf-warnings
+      run: |
+        REPORT="test_report/checkerframework/checker-report.txt"
+        if [ -f "$REPORT" ]; then
+          TOTAL=$(grep -c 'warning:' "$REPORT" || true)
+          NULLNESS=$(grep -c '\[nullness\]\|dereference.of.nullable\|argument\]\|assignment\]\|return\]' "$REPORT" || true)
+          INIT=$(grep -c '\[initialization' "$REPORT" || true)
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "nullness=$NULLNESS" >> "$GITHUB_OUTPUT"
+          echo "init=$INIT" >> "$GITHUB_OUTPUT"
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Post step summary
+      if: always() && steps.cf-warnings.outputs.found == 'true'
+      run: |
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+        ## Checker Framework Nullness Analysis
+
+        | Metric | Count |
+        |--------|-------|
+        | **Total warnings** | **${{ steps.cf-warnings.outputs.total }}** |
+        | Nullness warnings | ${{ steps.cf-warnings.outputs.nullness }} |
+        | Initialization warnings | ${{ steps.cf-warnings.outputs.init }} |
+
+        Download the **checker-framework-report** artifact for the full report.
+        EOF
+
+    - name: Comment on PR
+      if: always() && github.event_name == 'pull_request' && steps.cf-warnings.outputs.found == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const total = '${{ steps.cf-warnings.outputs.total }}';
+          const nullness = '${{ steps.cf-warnings.outputs.nullness }}';
+          const init = '${{ steps.cf-warnings.outputs.init }}';
+
+          const body = [
+            '## Checker Framework Nullness Analysis',
+            '',
+            '| Metric | Count |',
+            '|--------|-------|',
+            `| **Total warnings** | **${total}** |`,
+            `| Nullness warnings | ${nullness} |`,
+            `| Initialization warnings | ${init} |`,
+            '',
+            '<details>',
+            '<summary>What does this mean?</summary>',
+            '',
+            'The Checker Framework Nullness Checker verifies that the code is free from',
+            'null pointer dereferences. Warnings indicate places where a `@Nullable` value',
+            'may flow into a `@NonNull` context. Download the **checker-framework-report**',
+            'artifact for the full report.',
+            '</details>',
+          ].join('\n');
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c =>
+            c.user.type === 'Bot' && c.body.startsWith('## Checker Framework Nullness Analysis')
+          );
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body,
+            });
+          }
+
+    - name: Upload report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: checker-framework-report
+        path: test_report/checkerframework/checker-report.txt

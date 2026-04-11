@@ -48,7 +48,6 @@
 	<path id="pitest.classpath">
 		<fileset dir="${extlib}">
 			<include name="pitest*.jar" />
-			<include name="testng*.jar" />
 		</fileset>
 	</path>
 
@@ -495,10 +494,104 @@
 	<target name="pit" depends="test">
 		<path id="mutation.path">
 			<path refid="pitest.classpath" />
-			<path refid="test.classpath" />
+			<fileset dir="${extlib}" includes="*.jar" excludes="jacocoant.jar,testng*.jar,pitest*.jar" />
+			<pathelement location="${dist}/vstar.jar" />
+			<pathelement path="${test_build}" />
 		</path>
 		<!-- export feature activated to write mutants to file -->
-		<pitest features="+EXPORT" threads="2" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.*" targetTests="org.aavso.tools.vstar.*" excludedtestclasses="org.aavso.tools.vstar.util.period.dcdft.*,org.aavso.tools.vstar.util.stats.DescStatsTest,org.aavso.tools.vstar.util.stats.anova.*" reportDir="${mutation_coverage_dir}" sourceDir="${src}" />
+		<pitest features="+EXPORT" threads="1" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.*" targetTests="org.aavso.tools.vstar.*" excludedtestclasses="org.aavso.tools.vstar.util.period.dcdft.*,org.aavso.tools.vstar.util.stats.DescStatsTest,org.aavso.tools.vstar.util.stats.anova.*" reportDir="${mutation_coverage_dir}" sourceDir="${src}" outputFormats="XML,HTML" timeoutConst="10000" timeoutFactor="2" jvmArgs="-Xmx2048m" />
+	</target>
+
+	<!-- Static analysis targets -->
+
+	<property name="spotbugs.home" location="tools/spotbugs" />
+
+	<taskdef resource="edu/umd/cs/findbugs/anttask/tasks.properties"
+		classpath="${spotbugs.home}/lib/spotbugs-ant.jar" />
+
+	<target name="spotbugs" depends="dist" description="Run SpotBugs static analysis">
+		<property name="spotbugs.report" location="${test_report}/spotbugs" />
+		<mkdir dir="${spotbugs.report}" />
+
+		<spotbugs home="${spotbugs.home}"
+			output="xml:withMessages"
+			outputFile="${spotbugs.report}/spotbugsXml.xml"
+			effort="max"
+			reportLevel="medium"
+			jvmargs="-Xmx1024m">
+			<class location="${dist}/vstar.jar" />
+			<auxClasspath>
+				<fileset dir="${extlib}" includes="*.jar"
+					excludes="junit*.jar,hamcrest*.jar,testng*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+			</auxClasspath>
+			<sourcePath path="${src}" />
+		</spotbugs>
+
+		<spotbugs home="${spotbugs.home}"
+			output="html"
+			outputFile="${spotbugs.report}/spotbugs.html"
+			effort="max"
+			reportLevel="medium"
+			jvmargs="-Xmx1024m">
+			<class location="${dist}/vstar.jar" />
+			<auxClasspath>
+				<fileset dir="${extlib}" includes="*.jar"
+					excludes="junit*.jar,hamcrest*.jar,testng*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+			</auxClasspath>
+			<sourcePath path="${src}" />
+		</spotbugs>
+
+		<echo message="SpotBugs report: ${spotbugs.report}/spotbugs.html" />
+	</target>
+
+	<property name="checkerframework.home" location="tools/checker-framework" />
+
+	<path id="checkerframework.processorpath">
+		<pathelement location="${checkerframework.home}/checker-3.54.1.jar" />
+		<pathelement location="${extlib}/checker-qual-3.54.1.jar" />
+	</path>
+
+	<target name="checker" depends="init,antlr4" description="Run Checker Framework Nullness Checker">
+		<property name="cf.report" location="${test_report}/checkerframework" />
+		<property name="cf.build" location="${cf.report}/classes" />
+		<mkdir dir="${cf.report}" />
+		<mkdir dir="${cf.build}" />
+
+		<delete dir="${cf.build}" />
+		<mkdir dir="${cf.build}" />
+
+		<record name="${cf.report}/checker-report.txt" action="start" loglevel="info" />
+
+		<javac compiler="modern" source="17" target="17" encoding="UTF-8"
+			srcdir="${src}" destdir="${cf.build}" includeantruntime="false"
+			fork="yes" debug="on" debuglevel="lines,vars,source">
+			<classpath refid="build.classpath" />
+			<compilerarg value="-processorpath" />
+			<compilerarg pathref="checkerframework.processorpath" />
+			<compilerarg value="-processor" />
+			<compilerarg value="org.checkerframework.checker.nullness.NullnessChecker" />
+			<compilerarg value="-Awarns" />
+			<compilerarg value="-Xmaxwarns" />
+			<compilerarg value="10000" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED" />
+			<compilerarg value="-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED" />
+			<compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" />
+			<compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED" />
+		</javac>
+
+		<record name="${cf.report}/checker-report.txt" action="stop" />
+
+		<delete dir="${cf.build}" />
+
+		<echo message="Checker Framework analysis complete. Report: ${cf.report}/checker-report.txt" />
 	</target>
 
 	<!-- Documentation targets -->
