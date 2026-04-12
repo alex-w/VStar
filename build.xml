@@ -36,7 +36,7 @@
 	<!-- Classpaths -->
 
 	<path id="build.classpath">
-		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,testng*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar" />
+		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar" />
 	</path>
 
 	<path id="test.classpath">
@@ -494,7 +494,7 @@
 	<target name="pit" depends="test">
 		<path id="mutation.path">
 			<path refid="pitest.classpath" />
-			<fileset dir="${extlib}" includes="*.jar" excludes="jacocoant.jar,testng*.jar,pitest*.jar" />
+			<fileset dir="${extlib}" includes="*.jar" excludes="jacocoant.jar,pitest*.jar" />
 			<pathelement location="${dist}/vstar.jar" />
 			<pathelement path="${test_build}" />
 		</path>
@@ -522,7 +522,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,testng*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>
@@ -536,7 +536,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,testng*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>

@@ -111,5 +111,4 @@ For mutation testing, additional libraries are required.
     - pitest-1.15.3.jar
     - pitest-ant-1.15.3.jar
     - pitest-entry-1.15.3.jar
-    - testng-7.9.0.jar
     - JUnit 4 required by pitest (see above)
