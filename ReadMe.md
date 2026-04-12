@@ -6,6 +6,9 @@
 [![PIT Mutation Testing](https://github.com/AAVSO/VStar/actions/workflows/pit.yml/badge.svg)](https://github.com/AAVSO/VStar/actions/workflows/pit.yml)
 [![Checker Framework](https://github.com/AAVSO/VStar/actions/workflows/checkerframework.yml/badge.svg)](https://github.com/AAVSO/VStar/actions/workflows/checkerframework.yml)
 [![ascl:1407.013](https://img.shields.io/badge/ascl-1407.013-blue.svg?colorB=262256)](https://ascl.net/1407.013)
+
+**[Project Health Dashboard](https://aavso.github.io/VStar/)** &mdash; coverage reports, static analysis, mutation testing
+
 ## VStar
 
 ### Introduction

@@ -9,7 +9,7 @@ on:
 
 permissions:
   checks: write
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -135,3 +135,39 @@ jobs:
       with:
         path: '**/spotbugsXml.xml'
         fail-on-violation: false
+
+    - name: Checkout gh-pages
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        steps.sb-counts.outputs.found == 'true'
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+
+    - name: Publish to dashboard
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        steps.sb-counts.outputs.found == 'true'
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        cat > _site/data/spotbugs.json <<DATAJSON
+        {
+          "updated": "${DATE}",
+          "total": ${{ steps.sb-counts.outputs.total }},
+          "high": ${{ steps.sb-counts.outputs.high }},
+          "medium": ${{ steps.sb-counts.outputs.medium }},
+          "low": ${{ steps.sb-counts.outputs.low }}
+        }
+        DATAJSON
+
+        cd _site
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add -A
+        git diff --cached --quiet && exit 0
+        git commit -m "Update SpotBugs data [${DATE}]"
+        git pull --rebase origin gh-pages || true
+        git push origin gh-pages

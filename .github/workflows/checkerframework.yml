@@ -7,6 +7,7 @@ on:
     branches: [ master ]
 
 permissions:
+  contents: write
   pull-requests: write
 
 jobs:
@@ -124,3 +125,38 @@ jobs:
       with:
         name: checker-framework-report
         path: test_report/checkerframework/checker-report.txt
+
+    - name: Checkout gh-pages
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        steps.cf-warnings.outputs.found == 'true'
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+
+    - name: Publish to dashboard
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        steps.cf-warnings.outputs.found == 'true'
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        cat > _site/data/checker.json <<DATAJSON
+        {
+          "updated": "${DATE}",
+          "total": ${{ steps.cf-warnings.outputs.total }},
+          "nullness": ${{ steps.cf-warnings.outputs.nullness }},
+          "init": ${{ steps.cf-warnings.outputs.init }}
+        }
+        DATAJSON
+
+        cd _site
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add -A
+        git diff --cached --quiet && exit 0
+        git commit -m "Update Checker Framework data [${DATE}]"
+        git pull --rebase origin gh-pages || true
+        git push origin gh-pages

@@ -11,6 +11,7 @@ on:
     branches: [ master ]
 
 permissions:
+  contents: write
   pull-requests: write
 
 jobs:
@@ -178,3 +179,49 @@ jobs:
       with:
         name: coverage-report-java${{ matrix.java }}
         path: test_report/coverage/
+
+    - name: Checkout gh-pages
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        matrix.java == '17' &&
+        steps.metrics.outputs.tests != '0'
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+
+    - name: Publish to dashboard
+      if: >-
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        matrix.java == '17' &&
+        steps.metrics.outputs.tests != '0'
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        cat > _site/data/coverage.json <<DATAJSON
+        {
+          "updated": "${DATE}",
+          "java_version": "17",
+          "tests": ${{ steps.metrics.outputs.tests }},
+          "passed": ${{ steps.metrics.outputs.passed }},
+          "failures": ${{ steps.metrics.outputs.failures }},
+          "errors": ${{ steps.metrics.outputs.errors }},
+          "line_coverage": "${{ steps.metrics.outputs.line_cov }}",
+          "branch_coverage": "${{ steps.metrics.outputs.branch_cov }}"
+        }
+        DATAJSON
+
+        rm -rf _site/coverage/vstar/*
+        if [ -d "test_report/coverage" ]; then
+          cp -r test_report/coverage/* _site/coverage/vstar/
+        fi
+
+        cd _site
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add -A
+        git diff --cached --quiet && exit 0
+        git commit -m "Update VStar coverage data [${DATE}]"
+        git pull --rebase origin gh-pages || true
+        git push origin gh-pages

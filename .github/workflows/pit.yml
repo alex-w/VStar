@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  contents: write
   issues: write
 
 jobs:
@@ -171,3 +172,34 @@ jobs:
               state_reason: 'completed',
             });
           }
+
+    - name: Checkout gh-pages
+      if: always() && steps.pit-score.outputs.score != 'N/A'
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+
+    - name: Publish to dashboard
+      if: always() && steps.pit-score.outputs.score != 'N/A'
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        cat > _site/data/pit.json <<DATAJSON
+        {
+          "updated": "${DATE}",
+          "score": "${{ steps.pit-score.outputs.score }}",
+          "total": ${{ steps.pit-score.outputs.total }},
+          "killed": ${{ steps.pit-score.outputs.killed }},
+          "survived": ${{ steps.pit-score.outputs.survived }},
+          "no_coverage": ${{ steps.pit-score.outputs.no_coverage }}
+        }
+        DATAJSON
+
+        cd _site
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add -A
+        git diff --cached --quiet && exit 0
+        git commit -m "Update PIT mutation data [${DATE}]"
+        git pull --rebase origin gh-pages || true
+        git push origin gh-pages
