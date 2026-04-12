@@ -122,7 +122,7 @@ public class VeLaObservationTransformer extends ObservationTransformerPluginBase
 
                             // ...and call the function with the current
                             // observation's magnitude and error values.
-                            String funCall = String.format("do()", magnitude.getMagValue(), magnitude.getUncertainty());
+                            String funCall = String.format("do(%f %f)", magnitude.getMagValue(), magnitude.getUncertainty());
 
                             Optional<Operand> result = vela.program(funCall);
 
@@ -205,7 +205,7 @@ public class VeLaObservationTransformer extends ObservationTransformerPluginBase
      *         button was clicked and the VeLa code string.
      */
     private Pair<Boolean, String> invokeDialog(VeLaInterpreter vela) {
-        VeLaDialog velaDialog = new VeLaDialog("Define VeLa function: do():list");
+        VeLaDialog velaDialog = new VeLaDialog("Define VeLa function: do(mag:ℝ err:ℝ):list");
 
         boolean ok = !velaDialog.isCancelled();
         String code = velaDialog.getCode();
