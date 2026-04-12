@@ -32,6 +32,8 @@ jobs:
 
     - name: Run PIT mutation testing
       id: pit-run
+      env:
+        ANT_OPTS: '-Xmx1024m'
       run: ant -noinput -buildfile build.xml pit
 
     - name: Extract mutation score

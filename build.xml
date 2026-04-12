@@ -499,7 +499,7 @@
 			<pathelement path="${test_build}" />
 		</path>
 		<!-- export feature activated to write mutants to file -->
-		<pitest features="+EXPORT" threads="1" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.*" targetTests="org.aavso.tools.vstar.*" excludedtestclasses="org.aavso.tools.vstar.util.period.dcdft.*,org.aavso.tools.vstar.util.stats.DescStatsTest,org.aavso.tools.vstar.util.stats.anova.*" reportDir="${mutation_coverage_dir}" sourceDir="${src}" outputFormats="XML,HTML" timeoutConst="10000" timeoutFactor="2" jvmArgs="-Xmx4096m" />
+		<pitest features="+EXPORT" threads="1" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.*" targetTests="org.aavso.tools.vstar.*" excludedtestclasses="org.aavso.tools.vstar.util.period.dcdft.*,org.aavso.tools.vstar.util.stats.DescStatsTest,org.aavso.tools.vstar.util.stats.anova.*" reportDir="${mutation_coverage_dir}" sourceDir="${src}" outputFormats="XML,HTML" timeoutConst="10000" timeoutFactor="2" jvmArgs="-Xmx2048m -XX:+UseSerialGC" maxMutationsPerClass="50" />
 	</target>
 
 	<!-- Static analysis targets -->
