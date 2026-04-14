@@ -178,8 +178,24 @@ public class VeLaDialog extends TextDialog {
 
     @Override
     protected void okAction() {
-        VeLaDialog.code = VeLaDialog.codeTextArea.getValue();
         super.okAction();
+    }
+
+    /**
+     * Retain VeLa source across dialog invocations whenever the window is closed
+     * (OK, Cancel, or window close), not only when the dismiss button runs
+     * {@link #okAction()}.
+     */
+    @Override
+    public void dispose() {
+        persistCodeFromEditor();
+        super.dispose();
+    }
+
+    private static void persistCodeFromEditor() {
+        if (codeTextArea != null) {
+            code = codeTextArea.getValue();
+        }
     }
 
     private static void addKeyListener() {
