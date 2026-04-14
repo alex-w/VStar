@@ -41,6 +41,7 @@ public class StarGroupSelectionPane extends JPanel {
 
     private JComboBox<String> starGroupSelector;
     private JComboBox<String> starSelector;
+    private ActionListener starGroupSelectorListener;
     private ActionListener starSelectorListener;
 
     private StarGroups starGroups;
@@ -51,6 +52,7 @@ public class StarGroupSelectionPane extends JPanel {
     private String selectedAUID;
 
     private boolean clearStarField;
+    private JTextField starField;
 
     /**
      * Constructor
@@ -79,6 +81,7 @@ public class StarGroupSelectionPane extends JPanel {
         selectedAUID = null;
 
         this.clearStarField = clearStarField;
+        this.starField = starField;
 
         starGroups = StarGroups.getInstance();
         Set<String> starGroupMapKeys = starGroups.getGroupNames();
@@ -86,7 +89,8 @@ public class StarGroupSelectionPane extends JPanel {
         starGroupSelector = new JComboBox<String>(starGroupMapKeys.toArray(new String[0]));
         selectedStarGroup = (String) starGroupSelector.getItemAt(0);
         starGroupSelector.setBorder(BorderFactory.createTitledBorder(LocaleProps.get("NEW_STAR_FROM_AID_DLG_GROUP")));
-        starGroupSelector.addActionListener(createStarGroupSelectorListener());
+        starGroupSelectorListener = createStarGroupSelectorListener();
+        starGroupSelector.addActionListener(starGroupSelectorListener);
 
         starSelector = new JComboBox<String>();
         populateStarListForSelectedGroup();
@@ -104,10 +108,16 @@ public class StarGroupSelectionPane extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 // Populate the star selector list according
                 // to the selected group.
-                selectedStarGroup = (String) starGroupSelector.getSelectedItem();
-                starSelector.removeActionListener(starSelectorListener);
+                String group = (String) starGroupSelector.getSelectedItem();
+                // Avoid clearing the star list / selectedStarName when the combo fires
+                // with no selection (can happen around dialog show/layout); that would
+                // wipe the last star and break persistence across invocations.
+                if (group == null) {
+                    return;
+                }
+                selectedStarGroup = group;
                 populateStarListForSelectedGroup();
-                starSelector.addActionListener(starSelectorListener);
+                updateStarFieldForSelection();
             }
         };
     }
@@ -117,32 +127,132 @@ public class StarGroupSelectionPane extends JPanel {
         return new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 String starName = (String) starSelector.getSelectedItem();
-                if (starName != null && !NO_STARS.equals(starName)) {
-                    // Select a new star & AUID.
-                    selectedStarName = starName;
-                    selectedAUID = starGroups.getAUID(selectedStarGroup, selectedStarName);
+                if (starName == null || NO_STARS.equals(starName) || selectedStarGroup == null) {
+                    return;
                 }
+                selectedStarName = starName;
+                selectedAUID = starGroups.getAUID(selectedStarGroup, selectedStarName);
+                updateStarFieldForSelection();
             }
         };
     }
 
+    private void withSuppressedStarSelectorListener(Runnable action) {
+        starSelector.removeActionListener(starSelectorListener);
+        try {
+            action.run();
+        } finally {
+            starSelector.addActionListener(starSelectorListener);
+        }
+    }
+
+    private void withSuppressedGroupSelectorListener(Runnable action) {
+        starGroupSelector.removeActionListener(starGroupSelectorListener);
+        try {
+            action.run();
+        } finally {
+            starGroupSelector.addActionListener(starGroupSelectorListener);
+        }
+    }
+
+    private void syncSelectionFromUI() {
+        Object group = starGroupSelector.getSelectedItem();
+        if (group instanceof String && starGroups.doesGroupExist((String) group)) {
+            selectedStarGroup = (String) group;
+        }
+
+        Object star = starSelector.getSelectedItem();
+        if (star instanceof String && !NO_STARS.equals(star) && selectedStarGroup != null
+                && starGroups.doesStarExistInGroup(selectedStarGroup, (String) star)) {
+            selectedStarName = (String) star;
+            selectedAUID = starGroups.getAUID(selectedStarGroup, selectedStarName);
+        }
+    }
+
+    private void updateStarFieldForSelection() {
+        if (starField == null) {
+            return;
+        }
+        if (clearStarField) {
+            starField.setText("");
+        } else if (selectedStarName != null) {
+            starField.setText(selectedStarName);
+        }
+    }
+
     /**
      * Populate the star list combo-box given the currently selected star group.
+     * If the previously selected star is still in this group (e.g. after
+     * {@link #refreshGroups()} or prefs-driven star-group updates),
+     * keep that selection instead of resetting to the first list entry.
      */
     public void populateStarListForSelectedGroup() {
-        starSelector.removeAllItems();
+        withSuppressedStarSelectorListener(() -> {
+            starSelector.removeAllItems();
 
-        if (selectedStarGroup != null && !starGroups.getStarNamesInGroup(selectedStarGroup).isEmpty()) {
+            if (selectedStarGroup != null && !starGroups.getStarNamesInGroup(selectedStarGroup).isEmpty()) {
 
-            for (String starName : starGroups.getStarNamesInGroup(selectedStarGroup)) {
-                starSelector.addItem(starName);
+                for (String starName : starGroups.getStarNamesInGroup(selectedStarGroup)) {
+                    starSelector.addItem(starName);
+                }
+
+                // Prefer the model's string instance so setSelectedIndex/Item matches reliably.
+                String nameToSelect = findStarNameToSelect(selectedStarGroup, selectedStarName);
+                if (nameToSelect == null && starSelector.getItemCount() > 0) {
+                    nameToSelect = (String) starSelector.getItemAt(0);
+                }
+                if (nameToSelect != null) {
+                    int idx = indexOfStarItem(nameToSelect);
+                    if (idx >= 0) {
+                        starSelector.setSelectedIndex(idx);
+                        nameToSelect = (String) starSelector.getItemAt(idx);
+                    } else {
+                        starSelector.setSelectedIndex(0);
+                        nameToSelect = (String) starSelector.getItemAt(0);
+                    }
+                }
+                selectedStarName = nameToSelect;
+                if (selectedStarName != null) {
+                    selectedAUID = starGroups.getAUID(selectedStarGroup, selectedStarName);
+                } else {
+                    selectedAUID = null;
+                }
+            } else {
+                starSelector.addItem(NO_STARS);
+                selectedStarName = null;
+                selectedAUID = null;
             }
+        });
+    }
 
-            selectedStarName = (String) starSelector.getItemAt(0);
-            selectedAUID = starGroups.getAUID(selectedStarGroup, selectedStarName);
-        } else {
-            starSelector.addItem(NO_STARS);
+    /**
+     * Pick a star name to show: keep {@code desiredName} if it matches a star in the
+     * group (exact or trim), else null so the caller can fall back to the first star.
+     */
+    private String findStarNameToSelect(String groupName, String desiredName) {
+        if (desiredName == null || !starGroups.doesStarExistInGroup(groupName, desiredName)) {
+            String trimmed = desiredName == null ? null : desiredName.trim();
+            if (trimmed != null && starGroups.doesStarExistInGroup(groupName, trimmed)) {
+                return trimmed;
+            }
+            for (String key : starGroups.getStarNamesInGroup(groupName)) {
+                if (key != null && trimmed != null && key.equalsIgnoreCase(trimmed)) {
+                    return key;
+                }
+            }
+            return null;
         }
+        return desiredName;
+    }
+
+    private int indexOfStarItem(String starName) {
+        for (int i = 0; i < starSelector.getItemCount(); i++) {
+            Object o = starSelector.getItemAt(i);
+            if (starName.equals(o)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -208,13 +318,15 @@ public class StarGroupSelectionPane extends JPanel {
     public void resetGroups() {
         starGroups.resetGroupsToDefault();
 
-        starGroupSelector.removeAllItems();
+        withSuppressedGroupSelectorListener(() -> {
+            starGroupSelector.removeAllItems();
 
-        for (String groupName : starGroups.getGroupNames()) {
-            starGroupSelector.addItem(groupName);
-        }
+            for (String groupName : starGroups.getGroupNames()) {
+                starGroupSelector.addItem(groupName);
+            }
 
-        selectAndRefreshStarsInGroup(starGroups.getDefaultStarListTitle());
+            selectAndRefreshStarsInGroup(starGroups.getDefaultStarListTitle());
+        });
     }
 
     /**
@@ -222,23 +334,62 @@ public class StarGroupSelectionPane extends JPanel {
      * will be "refreshed".
      */
     public void refreshGroups() {
-        boolean prevClearStarField = clearStarField;
+        syncSelectionFromUI();
+        // Rebuilding the combo fires ActionListeners; without removing them first,
+        // selectedStarGroup is overwritten (often to the first group) before we
+        // can restore the user's last choice across dialog invocations.
+        final String savedGroup = getSelectedStarGroupName();
+        final String savedStar = getSelectedStarName();
 
-        starGroupSelector.removeAllItems();
+        withSuppressedGroupSelectorListener(() -> {
+            starGroupSelector.removeAllItems();
 
-        for (String groupName : starGroups.getGroupNames()) {
-            if (!starGroups.getStarNamesInGroup(groupName).isEmpty()) {
-                starGroupSelector.addItem(groupName);
+            for (String groupName : starGroups.getGroupNames()) {
+                if (!starGroups.getStarNamesInGroup(groupName).isEmpty()) {
+                    starGroupSelector.addItem(groupName);
+                }
+            }
+
+            String groupToSelect = resolveGroupToSelect(savedGroup);
+
+            selectedStarName = savedStar;
+
+            if (groupToSelect != null && starGroups.doesGroupExist(groupToSelect)) {
+                starGroupSelector.setSelectedItem(groupToSelect);
+                selectedStarGroup = groupToSelect;
+                populateStarListForSelectedGroup();
+            }
+        });
+    }
+
+    private String resolveGroupToSelect(String savedGroup) {
+        if (savedGroup != null && starGroups.doesGroupExist(savedGroup)
+                && !starGroups.getStarNamesInGroup(savedGroup).isEmpty()
+                && groupAppearsInCombo(savedGroup)) {
+            return savedGroup;
+        }
+
+        String def = starGroups.getDefaultStarListTitle();
+        if (groupAppearsInCombo(def)) {
+            return def;
+        }
+        if (starGroupSelector.getItemCount() > 0) {
+            return (String) starGroupSelector.getItemAt(0);
+        }
+
+        return null;
+    }
+
+    private boolean groupAppearsInCombo(String groupName) {
+        if (groupName == null) {
+            return false;
+        }
+        for (int i = 0; i < starGroupSelector.getItemCount(); i++) {
+            if (groupName.equals(starGroupSelector.getItemAt(i))) {
+                return true;
             }
         }
-
-        if (selectedStarGroup != null && starGroups.doesGroupExist(selectedStarGroup)) {
-            selectAndRefreshStarsInGroup(selectedStarGroup);
-        } else {
-            selectAndRefreshStarsInGroup(starGroups.getDefaultStarListTitle());
-        }
-
-        clearStarField = prevClearStarField;
+        return false;
     }
 
     /**

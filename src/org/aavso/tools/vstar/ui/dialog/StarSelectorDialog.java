@@ -122,7 +122,7 @@ public class StarSelectorDialog extends AbstractOkCancelDialog {
         leftPane.setToolTipText("Select a star from drop-down or enter a name, AUID or alias.");
 
         JPanel starFieldPane = createStarFieldPane();
-        starGroupSelectionPane = new StarGroupSelectionPane(starField, false);
+        starGroupSelectionPane = new StarGroupSelectionPane(starField, true);
         leftPane.add(starGroupSelectionPane);
 
         leftPane.add(Box.createRigidArea(new Dimension(10, 10)));
