@@ -126,11 +126,9 @@ jobs:
           const passed = '${{ steps.metrics.outputs.passed }}';
           const failures = '${{ steps.metrics.outputs.failures }}';
           const errors = '${{ steps.metrics.outputs.errors }}';
-          const lineCov = '${{ steps.metrics.outputs.line_cov }}';
-          const branchCov = '${{ steps.metrics.outputs.branch_cov }}';
 
           const body = [
-            '## Plugin Unit Tests & Coverage',
+            '## Plugin Unit Tests',
             '',
             `**${status}** (Java 17)`,
             '',
@@ -140,15 +138,6 @@ jobs:
             `| Passed | ${passed} |`,
             `| Failures | ${failures} |`,
             `| Errors | ${errors} |`,
-            `| Line Coverage | ${lineCov} |`,
-            `| Branch Coverage | ${branchCov} |`,
-            '',
-            '<details>',
-            '<summary>Coverage details</summary>',
-            '',
-            'Download the **plugin-coverage-report-java17** artifact for the full',
-            'JaCoCo HTML report with per-class breakdowns.',
-            '</details>',
           ].join('\n');
 
           const { data: comments } = await github.rest.issues.listComments({
@@ -157,7 +146,7 @@ jobs:
             issue_number: context.issue.number,
           });
           const existing = comments.find(c =>
-            c.user.type === 'Bot' && c.body.startsWith('## Plugin Unit Tests & Coverage')
+            c.user.type === 'Bot' && c.body.startsWith('## Plugin Unit Tests')
           );
 
           if (existing) {
