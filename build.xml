@@ -36,7 +36,7 @@
 	<!-- Classpaths -->
 
 	<path id="build.classpath">
-		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar" />
+		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,commons-text*.jar,commons-lang3*.jar" />
 	</path>
 
 	<path id="test.classpath">
@@ -499,7 +499,7 @@
 			<pathelement path="${test_build}" />
 		</path>
 		<!-- export feature activated to write mutants to file -->
-		<pitest features="+EXPORT" threads="1" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.*" targetTests="org.aavso.tools.vstar.*" excludedtestclasses="org.aavso.tools.vstar.util.period.dcdft.*,org.aavso.tools.vstar.util.stats.DescStatsTest,org.aavso.tools.vstar.util.stats.anova.*,org.aavso.tools.vstar.input.database.VSXWebService*,org.aavso.tools.vstar.auth.VSXWebServiceMemberInfoTest,org.aavso.tools.vstar.auth.AuthenticationSourceTest" reportDir="${mutation_coverage_dir}" sourceDir="${src}" outputFormats="XML,HTML" timeoutConst="10000" timeoutFactor="2" jvmArgs="-Xmx2048m,-XX:+UseSerialGC" maxMutationsPerClass="50" />
+		<pitest features="+EXPORT" threads="1" pitClasspath="pitest.classpath" classPath="mutation.path" targetClasses="org.aavso.tools.vstar.data.*,org.aavso.tools.vstar.data.validation.*,org.aavso.tools.vstar.data.filter.*,org.aavso.tools.vstar.util.date.*,org.aavso.tools.vstar.util.stats.PhaseCalcs,org.aavso.tools.vstar.util.stats.DescStats,org.aavso.tools.vstar.util.locale.*,org.aavso.tools.vstar.input.text.*,org.aavso.tools.vstar.util.comparator.*,org.aavso.tools.vstar.util.model.*,org.aavso.tools.vstar.util.notification.*,org.aavso.tools.vstar.exception.*" targetTests="org.aavso.tools.vstar.data.*,org.aavso.tools.vstar.data.validation.*,org.aavso.tools.vstar.data.filter.*,org.aavso.tools.vstar.util.date.*,org.aavso.tools.vstar.util.stats.PhaseCalcsTest,org.aavso.tools.vstar.util.stats.DescStatsPBTTest,org.aavso.tools.vstar.util.locale.*,org.aavso.tools.vstar.input.text.*,org.aavso.tools.vstar.util.comparator.*,org.aavso.tools.vstar.util.model.*,org.aavso.tools.vstar.util.notification.*,org.aavso.tools.vstar.exception.*,org.aavso.tools.vstar.auth.Auth0JSONParserTest" reportDir="${mutation_coverage_dir}" sourceDir="${src}" outputFormats="XML,HTML" timeoutConst="10000" timeoutFactor="2" jvmArgs="-Xmx2048m,-XX:+UseSerialGC" maxMutationsPerClass="50" />
 	</target>
 
 	<!-- Static analysis targets -->
@@ -522,7 +522,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>
@@ -536,7 +536,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>

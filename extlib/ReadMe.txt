@@ -112,3 +112,5 @@ For mutation testing, additional libraries are required.
     - pitest-ant-1.15.3.jar
     - pitest-entry-1.15.3.jar
     - JUnit 4 required by pitest (see above)
+    - commons-text-1.12.0.jar (Apache 2.0) - runtime dependency
+    - commons-lang3-3.17.0.jar (Apache 2.0) - runtime dependency of commons-text
