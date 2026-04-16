@@ -93,9 +93,9 @@ public class StarGroupSelectionPane extends JPanel {
         starGroupSelector.addActionListener(starGroupSelectorListener);
 
         starSelector = new JComboBox<String>();
-        populateStarListForSelectedGroup();
         starSelector.setBorder(BorderFactory.createTitledBorder(LocaleProps.get("NEW_STAR_FROM_AID_DLG_STAR")));
         starSelectorListener = createStarSelectorListener();
+        populateStarListForSelectedGroup();
         starSelector.addActionListener(starSelectorListener);
 
         this.add(starGroupSelector);
@@ -138,21 +138,47 @@ public class StarGroupSelectionPane extends JPanel {
     }
 
     private void withSuppressedStarSelectorListener(Runnable action) {
-        starSelector.removeActionListener(starSelectorListener);
+        boolean wasRegistered = removeAllStarSelectorListeners();
         try {
             action.run();
         } finally {
-            starSelector.addActionListener(starSelectorListener);
+            if (wasRegistered) {
+                starSelector.addActionListener(starSelectorListener);
+            }
         }
     }
 
     private void withSuppressedGroupSelectorListener(Runnable action) {
-        starGroupSelector.removeActionListener(starGroupSelectorListener);
+        boolean wasRegistered = removeAllGroupSelectorListeners();
         try {
             action.run();
         } finally {
-            starGroupSelector.addActionListener(starGroupSelectorListener);
+            if (wasRegistered) {
+                starGroupSelector.addActionListener(starGroupSelectorListener);
+            }
         }
+    }
+
+    private boolean removeAllStarSelectorListeners() {
+        boolean removedAny = false;
+        for (ActionListener listener : starSelector.getActionListeners()) {
+            if (listener == starSelectorListener) {
+                starSelector.removeActionListener(listener);
+                removedAny = true;
+            }
+        }
+        return removedAny;
+    }
+
+    private boolean removeAllGroupSelectorListeners() {
+        boolean removedAny = false;
+        for (ActionListener listener : starGroupSelector.getActionListeners()) {
+            if (listener == starGroupSelectorListener) {
+                starGroupSelector.removeActionListener(listener);
+                removedAny = true;
+            }
+        }
+        return removedAny;
     }
 
     private void syncSelectionFromUI() {
@@ -278,7 +304,9 @@ public class StarGroupSelectionPane extends JPanel {
             if (MessageBox.showConfirmDialog("Remove Group", LocaleProps.get("REALLY_DELETE"))) {
                 starGroups.removeStarGroup(groupName);
                 starGroupSelector.removeItem(groupName);
-                selectAndRefreshStarsInGroup((String) starGroupSelector.getItemAt(0));
+                if (starGroupSelector.getItemCount() > 0) {
+                    selectAndRefreshStarsInGroup((String) starGroupSelector.getItemAt(0));
+                }
             }
         }
     }
@@ -354,7 +382,7 @@ public class StarGroupSelectionPane extends JPanel {
 
             selectedStarName = savedStar;
 
-            if (groupToSelect != null && starGroups.doesGroupExist(groupToSelect)) {
+            if (groupToSelect != null) {
                 starGroupSelector.setSelectedItem(groupToSelect);
                 selectedStarGroup = groupToSelect;
                 populateStarListForSelectedGroup();
@@ -399,9 +427,11 @@ public class StarGroupSelectionPane extends JPanel {
      */
     public void selectAndRefreshStarsInGroup(String groupName) {
         if (starGroups.doesGroupExist(groupName)) {
-            starGroupSelector.setSelectedItem(groupName);
-            selectedStarGroup = groupName;
-            populateStarListForSelectedGroup();
+            withSuppressedGroupSelectorListener(() -> {
+                starGroupSelector.setSelectedItem(groupName);
+                selectedStarGroup = groupName;
+                populateStarListForSelectedGroup();
+            });
         }
     }
 
