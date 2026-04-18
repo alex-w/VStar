@@ -18,7 +18,10 @@
 package org.aavso.tools.vstar.ui.mediator;
 
 import java.awt.Window;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -46,6 +49,7 @@ import org.aavso.tools.vstar.util.stats.PhaseCalcs;
  */
 @SuppressWarnings("serial")
 public class DocumentManager {
+    private static final DateTimeFormatter MODEL_LABEL_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private Mediator mediator;
 
@@ -55,6 +59,7 @@ public class DocumentManager {
 
     private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> rawDataResidualComponents;
     private Map<String, SyntheticObservationListPane<AbstractModelObservationTableModel>> phasedResidualComponents;
+    private Map<IModel, String> uniqueModelKeys;
 
     private boolean phasePlotExists;
     private double epoch;
@@ -163,7 +168,8 @@ public class DocumentManager {
     public SyntheticObservationListPane<AbstractModelObservationTableModel> getModelListPane(AnalysisType type,
             IModel model) {
         SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
-        String key = model.getDescription();
+        String modelKey = getOrCreateUniqueModelKey(model);
+        String key = modelKey;
 
         switch (type) {
         case RAW_DATA:
@@ -183,7 +189,7 @@ public class DocumentManager {
             break;
 
         case PHASE_PLOT:
-            key = getPhasedModelKey(model);
+            key = getPhasedModelKey(modelKey);
 
             if (!phasedModelComponents.containsKey(key)) {
                 // Set the fit list's phases according to the last phase change.
@@ -211,7 +217,8 @@ public class DocumentManager {
     public SyntheticObservationListPane<AbstractModelObservationTableModel> getResidualsListPane(AnalysisType type,
             IModel model) {
         SyntheticObservationListPane<AbstractModelObservationTableModel> pane = null;
-        String key = model.getDescription();
+        String modelKey = getOrCreateUniqueModelKey(model);
+        String key = modelKey;
 
         switch (type) {
         case RAW_DATA:
@@ -229,7 +236,7 @@ public class DocumentManager {
             break;
 
         case PHASE_PLOT:
-            key = getPhasedModelKey(model);
+            key = getPhasedModelKey(modelKey);
 
             if (!phasedResidualComponents.containsKey(key)) {
                 // Set the residual list's phases according to the last phase
@@ -324,8 +331,55 @@ public class DocumentManager {
      * @param model The model whose description we will use as part of the key.
      * @return The unique key from the tuple: <description, epoch, period>.
      */
-    private String getPhasedModelKey(IModel model) {
-        return String.format("%s:e=%f,p=%f", model.getDescription(), epoch, period);
+    private String getPhasedModelKey(String modelKey) {
+        return String.format("%s:e=%f,p=%f", modelKey, epoch, period);
+    }
+
+    /**
+     * Return a stable unique key for this model instance for the life of the active
+     * document. Keys are derived from model description, but disambiguated on
+     * conflicts via " #N" suffixes to preserve models with identical descriptions.
+     */
+    private String getOrCreateUniqueModelKey(IModel model) {
+        if (uniqueModelKeys.containsKey(model)) {
+            return uniqueModelKeys.get(model);
+        }
+
+        String baseKey = buildModelLabel(model);
+        String key = baseKey;
+        int suffix = 2;
+
+        while (isModelKeyInUse(key)) {
+            key = String.format("%s #%d", baseKey, suffix++);
+        }
+
+        uniqueModelKeys.put(model, key);
+        return key;
+    }
+
+    private boolean isModelKeyInUse(String key) {
+        return uniqueModelKeys.containsValue(key) || rawDataModelComponents.containsKey(key)
+                || rawDataResidualComponents.containsKey(key)
+                || phasedModelComponents.containsKey(getPhasedModelKey(key))
+                || phasedResidualComponents.containsKey(getPhasedModelKey(key));
+    }
+
+    /**
+     * Build a human-readable label for model and residual document components.
+     * Includes model description, observation count, and creation time to reduce
+     * collisions while preserving user context.
+     */
+    private String buildModelLabel(IModel model) {
+        int obsCount = model.getFit() == null ? 0 : model.getFit().size();
+        String time = LocalTime.now().format(MODEL_LABEL_TIME_FORMATTER);
+        return String.format("%s (%d obs, %s)", model.getDescription(), obsCount, time);
+    }
+
+    /**
+     * Return the display label/key for this model instance.
+     */
+    public String getModelDisplayLabel(IModel model) {
+        return getOrCreateUniqueModelKey(model);
     }
 
     /**
@@ -356,6 +410,11 @@ public class DocumentManager {
             phasedResidualComponents = new HashMap<String, SyntheticObservationListPane<AbstractModelObservationTableModel>>();
         }
         phasedResidualComponents.clear();
+
+        if (uniqueModelKeys == null) {
+            uniqueModelKeys = new IdentityHashMap<IModel, String>();
+        }
+        uniqueModelKeys.clear();
 
         // Boolean maps
         if (showErrorBars == null) {
