@@ -372,7 +372,8 @@ public class DocumentManager {
     private String buildModelLabel(IModel model) {
         int obsCount = model.getFit() == null ? 0 : model.getFit().size();
         String time = LocalTime.now().format(MODEL_LABEL_TIME_FORMATTER);
-        return String.format("%s (%d obs, %s)", model.getDescription(), obsCount, time);
+        String desc = model.getDescription() == null ? "" : model.getDescription().trim();
+        return String.format("%s (%d obs, %s)", desc, obsCount, time);
     }
 
     /**

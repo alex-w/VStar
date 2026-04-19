@@ -89,7 +89,7 @@ public class VeLaDialog extends TextDialog {
 
     public VeLaDialog(String title) {
         super(title, createTextAreas(), true, true);
-        path = "Untitled";
+        path = "VeLa model";
     }
 
     public VeLaDialog(String title, String code) {
