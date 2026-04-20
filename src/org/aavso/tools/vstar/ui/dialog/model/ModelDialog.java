@@ -210,7 +210,8 @@ public class ModelDialog extends JDialog implements ListSelectionListener {
 		return new Listener<ModelCreationMessage>() {
 			@Override
 			public void update(ModelCreationMessage info) {
-				String desc = info.getModel().getDescription();
+				String desc = Mediator.getInstance().getDocumentManager()
+						.getModelDisplayLabel(info.getModel());
 
 				if (!modelMap.containsKey(desc)) {
 					modelMap.put(desc, info.getModel());

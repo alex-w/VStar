@@ -22,10 +22,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.aavso.tools.vstar.data.SeriesType;
 import org.aavso.tools.vstar.data.ValidObservation;
 import org.aavso.tools.vstar.exception.AlgorithmError;
 import org.aavso.tools.vstar.ui.model.plot.ContinuousModelFunction;
 import org.aavso.tools.vstar.util.Pair;
+import org.aavso.tools.vstar.util.TSBase;
 import org.aavso.tools.vstar.util.locale.LocaleProps;
 import org.aavso.tools.vstar.util.period.IPeriodAnalysisAlgorithm;
 import org.aavso.tools.vstar.util.period.PeriodAnalysisCoordinateType;
@@ -83,13 +85,36 @@ public class PeriodAnalysisDerivedMultiPeriodicModel implements IModel {
 	@Override
 	public String getDescription() {
 		if (desc == null) {
-			desc = getKind() + " from periods: ";
-			for (Harmonic harmonic : harmonics) {
-				desc += NumericPrecisionPrefs.formatOther(harmonic.getPeriod()) + " ";
+			StringBuilder descBuilder = new StringBuilder(getKind());
+			String seriesName = getSourceSeriesName();
+			if (seriesName != null) {
+				descBuilder.append(" for ").append(seriesName).append(" series");
 			}
+			descBuilder.append(" from periods: ");
+
+			for (int i = 0; i < harmonics.size(); i++) {
+				if (i > 0) {
+					descBuilder.append(", ");
+				}
+				descBuilder.append(NumericPrecisionPrefs.formatOther(harmonics.get(i).getPeriod()));
+			}
+			desc = descBuilder.toString();
 		}
 
 		return desc;
+	}
+
+	private String getSourceSeriesName() {
+		if (algorithm instanceof TSBase) {
+			List<ValidObservation> observations = ((TSBase) algorithm).getObservations();
+			if (observations != null && !observations.isEmpty()) {
+				SeriesType series = observations.get(0).getBand();
+				if (series != null) {
+					return series.getDescription();
+				}
+			}
+		}
+		return null;
 	}
 
 	/**

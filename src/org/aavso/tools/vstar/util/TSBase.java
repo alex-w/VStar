@@ -118,6 +118,13 @@ public class TSBase {
 		interrupted = false;
 	}
 
+	/**
+	 * @return the source observations used by this algorithm.
+	 */
+	public List<ValidObservation> getObservations() {
+		return observations;
+	}
+
 	// -------------------------------------------------------------------------------
 
 	public void load_raw() {
