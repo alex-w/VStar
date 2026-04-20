@@ -35,7 +35,7 @@ import org.apache.commons.math.analysis.UnivariateRealFunction;
  */
 public class VeLaModelCreator extends ModelCreatorPluginBase {
 
-    private static final String DIALOG_TITLE = "Function Code [model: f(t), optional derivative: df(t)]";
+    private static final String DIALOG_TITLE = "Function Code [model: f(t:real):real, optional derivative: df(t:real):real]";
     private static final String FUNC_NAME = "F";
     private static final String DERIV_FUNC_NAME = "DF";
     private static final String RESOLUTION_VAR = "RESOLUTION";
@@ -160,7 +160,7 @@ public class VeLaModelCreator extends ModelCreatorPluginBase {
 
                 if (!velaDialog.isCancelled()) {
                     modelFuncStr = velaDialog.getCode();
-                    modelNameStr = velaDialog.getPath();
+                    modelNameStr = "VeLa model";
                 }
             }
 

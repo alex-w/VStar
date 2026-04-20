@@ -25,8 +25,6 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,12 +35,13 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
 import org.aavso.tools.vstar.ui.dialog.ITextComponent;
+import org.aavso.tools.vstar.ui.dialog.LoadChooser;
 import org.aavso.tools.vstar.ui.dialog.MessageBox;
+import org.aavso.tools.vstar.ui.dialog.SaveChooser;
 import org.aavso.tools.vstar.ui.dialog.TextArea;
 import org.aavso.tools.vstar.ui.dialog.TextAreaTabs;
 import org.aavso.tools.vstar.ui.dialog.TextDialog;
 import org.aavso.tools.vstar.ui.mediator.Mediator;
-import org.aavso.tools.vstar.ui.resources.ResourceAccessor;
 import org.aavso.tools.vstar.util.Pair;
 import org.aavso.tools.vstar.util.locale.LocaleProps;
 import org.aavso.tools.vstar.vela.AST;
@@ -65,7 +64,7 @@ public class VeLaDialog extends TextDialog {
 
     private static String code = "";
 
-    private String path;
+    private File path;
 
     private static List<ITextComponent<String>> createTextAreas() {
         codeTextArea = new TextArea("VeLa Code", code, 12, 42, false, true);
@@ -89,7 +88,7 @@ public class VeLaDialog extends TextDialog {
 
     public VeLaDialog(String title) {
         super(title, createTextAreas(), true, true);
-        path = "VeLa model";
+        path = new File("Untitled");
     }
 
     public VeLaDialog(String title, String code) {
@@ -105,7 +104,7 @@ public class VeLaDialog extends TextDialog {
     /**
      * @return the most recently loaded/saved file path
      */
-    public String getPath() {
+    public File getPath() {
         return path;
     }
 
@@ -142,8 +141,8 @@ public class VeLaDialog extends TextDialog {
         JButton loadButton = new JButton(LocaleProps.get("LOAD_BUTTON"));
         loadButton.addActionListener(e -> {
             try {
-                Pair<String, String> content = Mediator.getInstance().getVelaFileLoadDialog().readFileAsString(this,
-                        null);
+                LoadChooser dialog = Mediator.getInstance().getVelaFileLoadDialog();
+                Pair<String, String> content = dialog.readFileAsString(this, null);
                 if (content != null) {
                     codeTextArea.setValue(content.first);
                 }
@@ -158,7 +157,10 @@ public class VeLaDialog extends TextDialog {
         saveButton.addActionListener(e -> {
             try {
                 String content = codeTextArea.getValue();
-                Mediator.getInstance().getVelaFileSaveDialog().writeStringToFile(this, content, null);
+                SaveChooser dialog = Mediator.getInstance().getVelaFileSaveDialog();
+                if (dialog.writeStringToFile(this, content, null)) {
+                    path = dialog.getSaveDialogSelectedFile();
+                }
             } catch (Exception ex) {
                 MessageBox.showErrorDialog(this, getTitle(), ex);
             }
