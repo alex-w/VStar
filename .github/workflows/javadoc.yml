@@ -1,0 +1,254 @@
+# Build VStar Javadoc and publish it to the gh-pages branch under
+#   javadoc/vstar/snapshot/  -- from the snapshot release tag
+#   javadoc/vstar/release/   -- from the latest semantic-version tag
+#
+# Triggers:
+#   - Any GitHub release publish (snapshot daily release or stable X.Y.Z release)
+#   - Manual dispatch (with optional choice of which set to refresh)
+#
+# See: https://github.com/AAVSO/VStar/issues/578
+
+name: Javadoc
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which Javadoc set(s) to refresh'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - snapshot
+          - release
+
+permissions:
+  contents: write
+
+jobs:
+  javadoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: Build & publish Javadoc
+
+    steps:
+    - name: Decide which targets to build
+      id: targets
+      run: |
+        # release event always rebuilds both (cheap and keeps the dashboard
+        # consistent regardless of which kind of release fired the workflow)
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          T="${{ inputs.target }}"
+        else
+          T="both"
+        fi
+        case "$T" in
+          snapshot) BUILD_SNAPSHOT=true; BUILD_RELEASE=false ;;
+          release)  BUILD_SNAPSHOT=false; BUILD_RELEASE=true ;;
+          both|*)   BUILD_SNAPSHOT=true; BUILD_RELEASE=true ;;
+        esac
+        echo "build_snapshot=$BUILD_SNAPSHOT" >> "$GITHUB_OUTPUT"
+        echo "build_release=$BUILD_RELEASE" >> "$GITHUB_OUTPUT"
+        echo "Targets: snapshot=$BUILD_SNAPSHOT release=$BUILD_RELEASE"
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Create plugin dirs
+      run: |
+        mkdir -p ~/vstar_plugins
+        mkdir -p ~/vstar_plugin_libs
+
+    - name: Resolve snapshot ref
+      id: snapref
+      if: steps.targets.outputs.build_snapshot == 'true'
+      run: |
+        # Prefer the dedicated 'snapshot' tag (moved by daily-release.yml);
+        # fall back to master if the tag is missing for any reason.
+        if git ls-remote --tags https://github.com/${{ github.repository }}.git refs/tags/snapshot | grep -q .; then
+          echo "ref=refs/tags/snapshot" >> "$GITHUB_OUTPUT"
+        else
+          echo "ref=refs/heads/master" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Resolve latest stable release tag
+      id: relref
+      if: steps.targets.outputs.build_release == 'true'
+      run: |
+        TAG=$(git ls-remote --tags https://github.com/${{ github.repository }}.git \
+          | awk '{print $2}' \
+          | sed 's|refs/tags/||;s|\^{}||' \
+          | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+          | sort -V \
+          | tail -1)
+        if [ -z "$TAG" ]; then
+          echo "No semantic-version tag found; skipping release Javadoc."
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "Latest stable release tag: $TAG"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        fi
+
+    # ---------- Snapshot ----------
+    - name: Checkout snapshot source
+      if: steps.targets.outputs.build_snapshot == 'true'
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.snapref.outputs.ref }}
+        path: src_snapshot
+
+    - name: Build snapshot Javadoc
+      if: steps.targets.outputs.build_snapshot == 'true'
+      working-directory: src_snapshot
+      run: ant -noinput -buildfile build.xml antlr4 javadoc
+
+    - name: Capture snapshot metadata
+      if: steps.targets.outputs.build_snapshot == 'true'
+      id: snapmeta
+      working-directory: src_snapshot
+      run: |
+        SHA=$(git rev-parse HEAD)
+        SHORT=$(git rev-parse --short=8 HEAD)
+        CDATE=$(git log -1 --format=%cI HEAD | cut -dT -f1)
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+        echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+        echo "cdate=$CDATE" >> "$GITHUB_OUTPUT"
+
+    # ---------- Release ----------
+    - name: Checkout release source
+      if: steps.targets.outputs.build_release == 'true' && steps.relref.outputs.found == 'true'
+      uses: actions/checkout@v4
+      with:
+        ref: refs/tags/${{ steps.relref.outputs.tag }}
+        path: src_release
+
+    - name: Build release Javadoc
+      if: steps.targets.outputs.build_release == 'true' && steps.relref.outputs.found == 'true'
+      working-directory: src_release
+      run: ant -noinput -buildfile build.xml antlr4 javadoc
+
+    - name: Capture release metadata
+      if: steps.targets.outputs.build_release == 'true' && steps.relref.outputs.found == 'true'
+      id: relmeta
+      working-directory: src_release
+      run: |
+        SHA=$(git rev-parse HEAD)
+        SHORT=$(git rev-parse --short=8 HEAD)
+        CDATE=$(git log -1 --format=%cI HEAD | cut -dT -f1)
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+        echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+        echo "cdate=$CDATE" >> "$GITHUB_OUTPUT"
+
+    # ---------- Publish to gh-pages ----------
+    - name: Checkout gh-pages
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+
+    - name: Stage Javadoc into gh-pages worktree
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        mkdir -p _site/javadoc/vstar _site/data
+
+        if [ "${{ steps.targets.outputs.build_snapshot }}" = "true" ] && \
+           [ -d src_snapshot/doc/vstar_docs ]; then
+          rm -rf _site/javadoc/vstar/snapshot
+          mkdir -p _site/javadoc/vstar/snapshot
+          cp -R src_snapshot/doc/vstar_docs/. _site/javadoc/vstar/snapshot/
+        fi
+
+        if [ "${{ steps.targets.outputs.build_release }}" = "true" ] && \
+           [ "${{ steps.relref.outputs.found }}" = "true" ] && \
+           [ -d src_release/doc/vstar_docs ]; then
+          rm -rf _site/javadoc/vstar/release
+          mkdir -p _site/javadoc/vstar/release
+          cp -R src_release/doc/vstar_docs/. _site/javadoc/vstar/release/
+        fi
+
+        # Merge new metadata with whatever existing data/javadoc.json had,
+        # so a snapshot-only or release-only run doesn't clobber the other set.
+        python3 - "$DATE" \
+          "${{ steps.targets.outputs.build_snapshot }}" \
+          "${{ steps.snapmeta.outputs.sha }}" \
+          "${{ steps.snapmeta.outputs.short }}" \
+          "${{ steps.snapmeta.outputs.cdate }}" \
+          "${{ steps.targets.outputs.build_release }}" \
+          "${{ steps.relref.outputs.found }}" \
+          "${{ steps.relref.outputs.tag }}" \
+          "${{ steps.relmeta.outputs.sha }}" \
+          "${{ steps.relmeta.outputs.short }}" \
+          "${{ steps.relmeta.outputs.cdate }}" <<'PY'
+        import json, os, sys
+        date, do_snap, s_sha, s_short, s_cdate, do_rel, rel_found, r_tag, r_sha, r_short, r_cdate = sys.argv[1:]
+        path = "_site/data/javadoc.json"
+        try:
+            with open(path) as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        data["updated"] = date
+        if do_snap == "true":
+            data["snapshot"] = {
+                "commit": s_sha, "commit_short": s_short,
+                "commit_date": s_cdate, "generated": date,
+                "path": "javadoc/vstar/snapshot/",
+            }
+        if do_rel == "true" and rel_found == "true":
+            data["release"] = {
+                "tag": r_tag, "commit": r_sha, "commit_short": r_short,
+                "commit_date": r_cdate, "generated": date,
+                "path": "javadoc/vstar/release/",
+            }
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        print(json.dumps(data, indent=2))
+        PY
+
+    - name: Commit and push to gh-pages
+      working-directory: _site
+      run: |
+        DATE=$(date -u +%Y-%m-%d)
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No Javadoc changes to publish."
+          exit 0
+        fi
+        SUMMARY="Update Javadoc"
+        if [ "${{ steps.targets.outputs.build_snapshot }}" = "true" ] && [ "${{ steps.targets.outputs.build_release }}" = "true" ]; then
+          SUMMARY="Update Javadoc (snapshot ${{ steps.snapmeta.outputs.short }} + release ${{ steps.relref.outputs.tag }})"
+        elif [ "${{ steps.targets.outputs.build_snapshot }}" = "true" ]; then
+          SUMMARY="Update snapshot Javadoc (${{ steps.snapmeta.outputs.short }})"
+        elif [ "${{ steps.targets.outputs.build_release }}" = "true" ]; then
+          SUMMARY="Update release Javadoc (${{ steps.relref.outputs.tag }})"
+        fi
+        git commit -m "${SUMMARY} [${DATE}]"
+        for i in 1 2 3; do
+          git pull --rebase origin gh-pages && git push origin gh-pages && break
+          echo "Push attempt $i failed, retrying in $((i * 5))s..."
+          sleep $((i * 5))
+        done
+
+    - name: Step summary
+      if: always()
+      run: |
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+        ## Javadoc publication
+
+        | Set | Built | Source |
+        |-----|-------|--------|
+        | snapshot | ${{ steps.targets.outputs.build_snapshot }} | ${{ steps.snapmeta.outputs.short }} (${{ steps.snapmeta.outputs.cdate }}) |
+        | release  | ${{ steps.targets.outputs.build_release }} (${{ steps.relref.outputs.found }}) | ${{ steps.relref.outputs.tag }} @ ${{ steps.relmeta.outputs.short }} (${{ steps.relmeta.outputs.cdate }}) |
+
+        Published to: https://aavso.github.io/VStar/javadoc/
+        EOF
