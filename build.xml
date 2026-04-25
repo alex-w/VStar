@@ -596,7 +596,7 @@
 
 	<!-- Documentation targets -->
 
-	<target name="javadoc" description="Javadoc generation">
+	<target name="javadoc" depends="init,antlr4" description="Javadoc generation">
 		<delete failonerror="false" includeemptydirs="true">
 			<fileset dir="${javadoc}" includes="**/*" />
 		</delete>

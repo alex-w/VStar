@@ -107,6 +107,8 @@ jobs:
     - name: Build snapshot Javadoc
       if: steps.targets.outputs.build_snapshot == 'true'
       working-directory: src_snapshot
+      # NB: name 'antlr4' explicitly so this works against historical checkouts
+      # whose build.xml predates the javadoc->antlr4 dependency fix.
       run: ant -noinput -buildfile build.xml antlr4 javadoc
 
     - name: Capture snapshot metadata
@@ -132,6 +134,8 @@ jobs:
     - name: Build release Javadoc
       if: steps.targets.outputs.build_release == 'true' && steps.relref.outputs.found == 'true'
       working-directory: src_release
+      # NB: name 'antlr4' explicitly so this works against historical checkouts
+      # whose build.xml predates the javadoc->antlr4 dependency fix.
       run: ant -noinput -buildfile build.xml antlr4 javadoc
 
     - name: Capture release metadata
