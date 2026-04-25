@@ -601,7 +601,13 @@
 			<fileset dir="${javadoc}" includes="**/*" />
 		</delete>
 
-		<javadoc sourcepath="${src}" destdir="${javadoc}" classpathref="build.classpath" header="VStar" />
+		<!-- Lift the default 100/100 caps so the build reports true error/warning totals. -->
+		<javadoc sourcepath="${src}" destdir="${javadoc}" classpathref="build.classpath" header="VStar">
+			<arg value="-Xmaxerrs" />
+			<arg value="9999" />
+			<arg value="-Xmaxwarns" />
+			<arg value="9999" />
+		</javadoc>
 
 		<zip destfile="${doc}/vstar_docs.zip" basedir="${doc}" includes="vstar_docs/**/*" />
 	</target>
