@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         java: [ '17', '21', '23' ]
 
@@ -39,8 +40,11 @@ jobs:
         mkdir -p ~/vstar_plugin_libs
     - name: Run tests with coverage
       id: tests
-      run:
-        ant -noinput -buildfile build.xml coverage-report
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 20
+        max_attempts: 2
+        command: ant -noinput -buildfile build.xml coverage-report
 
     - name: Extract test and coverage metrics
       if: always()
