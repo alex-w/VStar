@@ -54,15 +54,11 @@ jobs:
       with:
         path: ~/.m2/repository
         key: rrd-antlr4-0.1.2-maven
-    - name: Generate VeLa grammar PDFs
+    - name: Generate VeLa grammar railroad diagram PDF
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y enscript ghostscript maven
+        sudo apt-get install -y maven
 
-        # Plain text grammar PDF
-        enscript --no-header --font=Courier10 -p - src/org/aavso/tools/vstar/vela/VeLa.g4 | ps2pdf - VeLa.g4.pdf
-
-        # Railroad diagram PDF via rrd-antlr4
         git clone --depth 1 https://github.com/bkiers/rrd-antlr4.git /tmp/rrd-antlr4
         mvn -q clean package -f /tmp/rrd-antlr4/pom.xml
         cd /tmp/rrd-antlr4/target
@@ -81,5 +77,4 @@ jobs:
             vstar-bash.zip
             vstar-win.zip
             plugin/vstar-plugins.zip
-            VeLa.g4.pdf
             VeLa-railroad.pdf
