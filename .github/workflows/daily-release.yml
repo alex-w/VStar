@@ -70,7 +70,7 @@ jobs:
         # element options (< assoc = right >), so strip them before processing.
         sed 's/<[[:space:]]*assoc[[:space:]]*=[[:space:]]*right[[:space:]]*>//' \
           "$GITHUB_WORKSPACE/src/org/aavso/tools/vstar/vela/VeLa.g4" > /tmp/VeLa-rrd.g4
-        java -jar rrd-antlr4-0.1.2.jar --pdf /tmp/VeLa-rrd.g4
+        java -jar rrd-antlr4-0.1.2.jar --png --pdf /tmp/VeLa-rrd.g4
         find output -name "*.pdf" -exec cp {} "$GITHUB_WORKSPACE/VeLa-railroad.pdf" \;
     - uses: pyTooling/Actions/releaser@r0
       with:
