@@ -56,8 +56,10 @@ jobs:
         key: rrd-antlr4-0.1.2-maven
     - name: Generate VeLa grammar PDFs
       run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y enscript ghostscript maven
+
         # Plain text grammar PDF
-        sudo apt-get install -y enscript
         enscript --no-header --font=Courier10 -p - src/org/aavso/tools/vstar/vela/VeLa.g4 | ps2pdf - VeLa.g4.pdf
 
         # Railroad diagram PDF via rrd-antlr4
