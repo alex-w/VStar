@@ -49,6 +49,23 @@ jobs:
         cd plugin
         ant -noinput -buildfile build.xml aavso
         cd ..
+    - name: Cache Maven repository for rrd-antlr4
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: rrd-antlr4-0.1.2-maven
+    - name: Generate VeLa grammar PDFs
+      run: |
+        # Plain text grammar PDF
+        sudo apt-get install -y enscript
+        enscript --no-header --font=Courier10 -p - src/org/aavso/tools/vstar/vela/VeLa.g4 | ps2pdf - VeLa.g4.pdf
+
+        # Railroad diagram PDF via rrd-antlr4
+        git clone --depth 1 https://github.com/bkiers/rrd-antlr4.git /tmp/rrd-antlr4
+        mvn -q clean package -f /tmp/rrd-antlr4/pom.xml
+        cd /tmp/rrd-antlr4/target
+        java -jar rrd-antlr4-0.1.2.jar --pdf "$GITHUB_WORKSPACE/src/org/aavso/tools/vstar/vela/VeLa.g4"
+        find output -name "*.pdf" -exec cp {} "$GITHUB_WORKSPACE/VeLa-railroad.pdf" \;
     - uses: pyTooling/Actions/releaser@r0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -58,3 +75,5 @@ jobs:
             vstar-bash.zip
             vstar-win.zip
             plugin/vstar-plugins.zip
+            VeLa.g4.pdf
+            VeLa-railroad.pdf
