@@ -23,6 +23,9 @@ jobs:
 
     name: Snapshot release
 
+    permissions:
+      contents: write
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Java
@@ -54,7 +57,7 @@ jobs:
       with:
         path: ~/.m2/repository
         key: rrd-antlr4-0.1.2-maven
-    - name: Generate VeLa grammar railroad diagram PDF
+    - name: Generate VeLa grammar railroad diagram
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y maven
@@ -65,9 +68,33 @@ jobs:
         # rrd-antlr4 uses an older ANTLR4 meta-grammar that doesn't support
         # element options (< assoc = right >), so strip them before processing.
         sed 's/<[[:space:]]*assoc[[:space:]]*=[[:space:]]*right[[:space:]]*>//' \
-          "$GITHUB_WORKSPACE/src/org/aavso/tools/vstar/vela/VeLa.g4" > /tmp/VeLa-rrd.g4
-        java -jar rrd-antlr4-0.1.2.jar --png --pdf /tmp/VeLa-rrd.g4
-        find output -name "*.pdf" -exec cp {} "$GITHUB_WORKSPACE/VeLa-railroad.pdf" \;
+          "$GITHUB_WORKSPACE/src/org/aavso/tools/vstar/vela/VeLa.g4" > /tmp/VeLa.g4
+        java -jar rrd-antlr4-0.1.2.jar /tmp/VeLa.g4
+    - name: Checkout gh-pages
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: _site
+    - name: Publish VeLa grammar diagram to gh-pages
+      run: |
+        mkdir -p _site/grammar
+        cp /tmp/rrd-antlr4/target/output/VeLa/index.html _site/grammar/VeLa.html
+    - name: Commit and push VeLa grammar diagram to gh-pages
+      working-directory: _site
+      run: |
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git add grammar/VeLa.html
+        if git diff --cached --quiet; then
+          echo "No VeLa grammar diagram changes to publish."
+          exit 0
+        fi
+        git commit -m "Update VeLa grammar railroad diagram"
+        for i in 1 2 3; do
+          git pull --rebase origin gh-pages && git push origin gh-pages && break
+          echo "Push attempt $i failed, retrying in $((i * 5))s..."
+          sleep $((i * 5))
+        done
     - uses: pyTooling/Actions/releaser@r0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -77,4 +104,3 @@ jobs:
             vstar-bash.zip
             vstar-win.zip
             plugin/vstar-plugins.zip
-            VeLa-railroad.pdf
