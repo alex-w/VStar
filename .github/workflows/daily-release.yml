@@ -57,7 +57,7 @@ jobs:
     - name: Generate VeLa grammar PDFs
       run: |
         # Plain text grammar PDF
-        sudo apt-get install -y enscript
+        sudo apt-get install -y enscript ghostscript
         enscript --no-header --font=Courier10 -p - src/org/aavso/tools/vstar/vela/VeLa.g4 | ps2pdf - VeLa.g4.pdf
 
         # Railroad diagram PDF via rrd-antlr4
