@@ -98,7 +98,8 @@ jobs:
         steps.sb-counts.outputs.found == 'true'
       run: |
         DATE=$(date -u +%Y-%m-%d)
-        cat > _site/data/spotbugs.json <<DATAJSON
+        mkdir -p _site/health/data
+        cat > _site/health/data/spotbugs.json <<DATAJSON
         {
           "updated": "${DATE}",
           "total": ${{ steps.sb-counts.outputs.total }},

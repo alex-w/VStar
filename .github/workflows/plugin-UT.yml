@@ -191,7 +191,8 @@ jobs:
         steps.metrics.outputs.tests != '0'
       run: |
         DATE=$(date -u +%Y-%m-%d)
-        cat > _site/data/plugin-coverage.json <<DATAJSON
+        mkdir -p _site/health/data _site/health/coverage/plugins
+        cat > _site/health/data/plugin-coverage.json <<DATAJSON
         {
           "updated": "${DATE}",
           "java_version": "17",
@@ -204,9 +205,9 @@ jobs:
         }
         DATAJSON
 
-        rm -rf _site/coverage/plugins/*
+        rm -rf _site/health/coverage/plugins/*
         if [ -d "plugin/test_report/coverage" ]; then
-          cp -r plugin/test_report/coverage/* _site/coverage/plugins/
+          cp -r plugin/test_report/coverage/* _site/health/coverage/plugins/
         fi
 
         cd _site

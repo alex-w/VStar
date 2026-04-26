@@ -160,7 +160,7 @@ jobs:
     - name: Stage Javadoc into gh-pages worktree
       run: |
         DATE=$(date -u +%Y-%m-%d)
-        mkdir -p _site/javadoc/vstar _site/data
+        mkdir -p _site/javadoc/vstar _site/javadoc/data
 
         if [ "${{ steps.targets.outputs.build_snapshot }}" = "true" ] && \
            [ -d src_snapshot/doc/vstar_docs ]; then
@@ -192,7 +192,7 @@ jobs:
           "${{ steps.relmeta.outputs.cdate }}" <<'PY'
         import json, os, sys
         date, do_snap, s_sha, s_short, s_cdate, do_rel, rel_found, r_tag, r_sha, r_short, r_cdate = sys.argv[1:]
-        path = "_site/data/javadoc.json"
+        path = "_site/javadoc/data/javadoc.json"
         try:
             with open(path) as f:
                 data = json.load(f)
@@ -203,13 +203,13 @@ jobs:
             data["snapshot"] = {
                 "commit": s_sha, "commit_short": s_short,
                 "commit_date": s_cdate, "generated": date,
-                "path": "javadoc/vstar/snapshot/",
+                "path": "vstar/snapshot/",
             }
         if do_rel == "true" and rel_found == "true":
             data["release"] = {
                 "tag": r_tag, "commit": r_sha, "commit_short": r_short,
                 "commit_date": r_cdate, "generated": date,
-                "path": "javadoc/vstar/release/",
+                "path": "vstar/release/",
             }
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
