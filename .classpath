@@ -6,7 +6,11 @@
 	<classpathentry kind="src" path="plugin/src"/>
 	<classpathentry excluding="build/|build_debug/" kind="src" path="src"/>
 	<classpathentry kind="src" path="plugin/test"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="extlib/antlr-runtime-4.5.3.jar"/>
 	<classpathentry kind="lib" path="extlib/commons-math-2.2.jar"/>
 	<classpathentry kind="lib" path="extlib/javacsv.jar"/>
@@ -17,5 +21,9 @@
 	<classpathentry kind="lib" path="extlib/quicktheories-0.26.jar"/>
 	<classpathentry kind="lib" path="plugin/lib/tamfits.jar"/>
 	<classpathentry kind="lib" path="plugin/lib/json.jar"/>
+	<classpathentry kind="lib" path="extlib/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="extlib/assertj-core-3.17.2.jar"/>
+	<classpathentry kind="lib" path="extlib/assertj-swing-3.17.1.jar"/>
+	<classpathentry kind="lib" path="extlib/assertj-swing-junit-3.17.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

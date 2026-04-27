@@ -74,6 +74,17 @@ of a VStar release.
     - Eclipse Public License 1.0 (not distributed with VStar releases)
     - https://junit.org/junit4/
 
+  o AssertJ Swing (functional GUI testing, see issue #579 prong B)
+    - assertj-swing-3.17.1.jar
+    - assertj-swing-junit-3.17.1.jar
+    - assertj-core-3.17.2.jar
+    - Apache License 2.0
+    - https://assertj.github.io/doc/#assertj-swing
+    On JDK 9+ the test target passes a small set of --add-opens flags
+    (see build.xml) so AssertJ Swing can reflect into AWT/Swing
+    internals. On Linux CI the ant invocation is wrapped in xvfb-run
+    so GUI tests have a virtual display.
+
   o Property based testing framework
     - quicktheories-0.26.jar
     - https://github.com/quicktheories/QuickTheories

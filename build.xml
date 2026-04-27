@@ -36,7 +36,7 @@
 	<!-- Classpaths -->
 
 	<path id="build.classpath">
-		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,commons-text*.jar,commons-lang3*.jar" />
+		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 	</path>
 
 	<path id="test.classpath">
@@ -345,6 +345,12 @@
 			<formatter type="plain" />
 
 			<jvmarg value="-ea" />
+			<!-- AssertJ Swing 3.17 reflects into AWT/Swing internals; required on JDK 9+. -->
+			<jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/javax.swing=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
 
 			<formatter type="plain" />
 
@@ -409,6 +415,12 @@
 				<formatter type="plain" />
 
 				<jvmarg value="-ea" />
+				<!-- AssertJ Swing 3.17 reflects into AWT/Swing internals; required on JDK 9+. -->
+				<jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/javax.swing=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
 
 				<formatter type="plain" />
 
@@ -533,7 +545,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>
@@ -547,7 +559,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>

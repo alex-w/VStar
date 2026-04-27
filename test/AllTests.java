@@ -33,6 +33,10 @@ import org.aavso.tools.vstar.input.database.VSXWebServiceStarInfoSourceTest;
 import org.aavso.tools.vstar.input.text.ObservationFieldSplitterTest;
 import org.aavso.tools.vstar.input.text.TextFormatObservationReaderTest;
 import org.aavso.tools.vstar.plugin.PluginManagerTest;
+import org.aavso.tools.vstar.ui.NumberSelectionPaneTest;
+import org.aavso.tools.vstar.ui.mediator.message.MessageBaseTest;
+import org.aavso.tools.vstar.ui.mediator.message.ProgressInfoTest;
+import org.aavso.tools.vstar.ui.model.list.InvalidObservationTableModelTest;
 import org.aavso.tools.vstar.util.DecInfoTest;
 import org.aavso.tools.vstar.util.RAInfoTest;
 import org.aavso.tools.vstar.util.comparator.RankedIndexPairComparatorTest;
@@ -54,6 +58,7 @@ import org.aavso.tools.vstar.util.stats.anova.CommonsMathAnovaTest;
 import org.aavso.tools.vstar.util.stats.anova.EpsAurVisJD2454700ToJD2455000AnovaTest;
 import org.aavso.tools.vstar.vela.VeLaTest;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
@@ -101,6 +106,15 @@ public class AllTests {
 		suite.addTestSuite(CommonsMathAnovaTest.class);
 		suite.addTestSuite(EpsAurVisJD2454700ToJD2455000AnovaTest.class);
 		suite.addTestSuite(VeLaTest.class);
+
+		// GUI-coverage spike (issue #579, prong B).
+		suite.addTestSuite(ProgressInfoTest.class);
+		suite.addTestSuite(MessageBaseTest.class);
+		suite.addTestSuite(InvalidObservationTableModelTest.class);
+		// JUnit 4 + AssertJ Swing demonstrator; bridge into the JUnit 3 suite
+		// so it runs from this entry point too (Ant's <batchtest> picks it up
+		// directly via *Test.java).
+		suite.addTest(new JUnit4TestAdapter(NumberSelectionPaneTest.class));
 		// $JUnit-END$
 		
 		return suite;
