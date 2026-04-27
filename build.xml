@@ -463,6 +463,17 @@
 			<fileset file="${coverage_report}/summary.txt" />
 		</concat>
 
+		<!-- Coverage by area: GUI vs non-GUI (issue #579). -->
+		<exec executable="python3" failonerror="false" resultproperty="coverage.area.exit">
+			<arg value="${basedir}/script/coverage_metrics.py" />
+			<arg value="--src" />
+			<arg value="${src}" />
+			<arg value="--coverage-xml" />
+			<arg value="${coverage_report}/coverage.xml" />
+			<arg value="--out" />
+			<arg value="${coverage_report}/area-summary.txt" />
+		</exec>
+
 		<!-- Generate summary and fail on test errors/failures -->
 		<concat destfile="${test_report}/summary.txt">
 			<header filtering="no" trimleading="yes">
