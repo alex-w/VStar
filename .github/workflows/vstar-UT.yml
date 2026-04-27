@@ -38,13 +38,16 @@ jobs:
     - name: Create plugin libs dir
       run:
         mkdir -p ~/vstar_plugin_libs
+    # Issue #579: GUI tests use AssertJ Swing, which needs an X display.
+    # xvfb is pre-installed on ubuntu-latest; this wraps the whole UT run
+    # so any test that touches Swing/AWT works headlessly.
     - name: Run tests with coverage
       id: tests
       uses: nick-fields/retry@v3
       with:
         timeout_minutes: 20
         max_attempts: 2
-        command: ant -noinput -buildfile build.xml coverage-report
+        command: xvfb-run -a ant -noinput -buildfile build.xml coverage-report
 
     - name: Extract test and coverage metrics
       if: always()
