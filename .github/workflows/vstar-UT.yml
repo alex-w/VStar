@@ -66,32 +66,30 @@ jobs:
         fi
         PASSED=$((TESTS - FAILURES - ERRORS))
 
-        LINE_COV="N/A"; BRANCH_COV="N/A"
-        if [ -f "$COV_XML" ]; then
-          LINE_M=$(grep -oP '<counter type="LINE" missed="\K[0-9]+' "$COV_XML" | tail -1 || true)
-          LINE_C=$(grep -oP '<counter type="LINE" missed="[0-9]+" covered="\K[0-9]+' "$COV_XML" | tail -1 || true)
-          BRANCH_M=$(grep -oP '<counter type="BRANCH" missed="\K[0-9]+' "$COV_XML" | tail -1 || true)
-          BRANCH_C=$(grep -oP '<counter type="BRANCH" missed="[0-9]+" covered="\K[0-9]+' "$COV_XML" | tail -1 || true)
-          if [ -n "$LINE_M" ] && [ -n "$LINE_C" ]; then
-            TOTAL_L=$((LINE_M + LINE_C))
-            if [ "$TOTAL_L" -gt 0 ]; then
-              LINE_COV="$((LINE_C * 100 / TOTAL_L))%"
-            fi
-          fi
-          if [ -n "$BRANCH_M" ] && [ -n "$BRANCH_C" ]; then
-            TOTAL_B=$((BRANCH_M + BRANCH_C))
-            if [ "$TOTAL_B" -gt 0 ]; then
-              BRANCH_COV="$((BRANCH_C * 100 / TOTAL_B))%"
-            fi
-          fi
-        fi
-
         echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
         echo "passed=$PASSED" >> "$GITHUB_OUTPUT"
         echo "failures=$FAILURES" >> "$GITHUB_OUTPUT"
         echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
-        echo "line_cov=$LINE_COV" >> "$GITHUB_OUTPUT"
-        echo "branch_cov=$BRANCH_COV" >> "$GITHUB_OUTPUT"
+
+        # Issue #579: split coverage into GUI vs non-GUI so the headline
+        # number reflects code we actually unit-test, while keeping the
+        # GUI deficit visible alongside it.
+        if [ -f "$COV_XML" ]; then
+          python3 script/coverage_metrics.py \
+            --src src \
+            --coverage-xml "$COV_XML" \
+            --github-output "$GITHUB_OUTPUT"
+        else
+          echo "line_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "branch_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "method_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "gui_line_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "gui_branch_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "gui_method_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "all_line_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "all_branch_cov=N/A" >> "$GITHUB_OUTPUT"
+          echo "all_method_cov=N/A" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Post step summary
       if: always() && steps.metrics.outputs.tests != '0'
@@ -108,8 +106,16 @@ jobs:
         | Passed | ${{ steps.metrics.outputs.passed }} |
         | Failures | ${{ steps.metrics.outputs.failures }} |
         | Errors | ${{ steps.metrics.outputs.errors }} |
-        | Line Coverage | ${{ steps.metrics.outputs.line_cov }} |
-        | Branch Coverage | ${{ steps.metrics.outputs.branch_cov }} |
+
+        ### Coverage by area (issue #579)
+
+        A class is "GUI" when its source file imports \`javax.swing\` or \`java.awt\`.
+
+        | Area | Line | Branch |
+        |------|------|--------|
+        | Non-GUI (headline) | ${{ steps.metrics.outputs.line_cov }} | ${{ steps.metrics.outputs.branch_cov }} |
+        | GUI | ${{ steps.metrics.outputs.gui_line_cov }} | ${{ steps.metrics.outputs.gui_branch_cov }} |
+        | Combined | ${{ steps.metrics.outputs.all_line_cov }} | ${{ steps.metrics.outputs.all_branch_cov }} |
         EOF
 
     - name: Comment on PR
@@ -193,6 +199,10 @@ jobs:
       run: |
         DATE=$(date -u +%Y-%m-%d)
         mkdir -p _site/health/data _site/health/coverage/vstar
+        # Issue #579: line_coverage / branch_coverage are now the non-GUI
+        # headline figures (a class is GUI when its source imports
+        # javax.swing or java.awt). gui_* and combined_* are published
+        # alongside so the dashboard can show the GUI deficit explicitly.
         cat > _site/health/data/coverage.json <<DATAJSON
         {
           "updated": "${DATE}",
@@ -202,7 +212,11 @@ jobs:
           "failures": ${{ steps.metrics.outputs.failures }},
           "errors": ${{ steps.metrics.outputs.errors }},
           "line_coverage": "${{ steps.metrics.outputs.line_cov }}",
-          "branch_coverage": "${{ steps.metrics.outputs.branch_cov }}"
+          "branch_coverage": "${{ steps.metrics.outputs.branch_cov }}",
+          "gui_line_coverage": "${{ steps.metrics.outputs.gui_line_cov }}",
+          "gui_branch_coverage": "${{ steps.metrics.outputs.gui_branch_cov }}",
+          "combined_line_coverage": "${{ steps.metrics.outputs.all_line_cov }}",
+          "combined_branch_coverage": "${{ steps.metrics.outputs.all_branch_cov }}"
         }
         DATAJSON
 
