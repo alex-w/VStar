@@ -36,7 +36,7 @@
 	<!-- Classpaths -->
 
 	<path id="build.classpath">
-		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,commons-text*.jar,commons-lang3*.jar" />
+		<fileset dir="${extlib}" includes="*.jar" excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 	</path>
 
 	<path id="test.classpath">
@@ -345,6 +345,12 @@
 			<formatter type="plain" />
 
 			<jvmarg value="-ea" />
+			<!-- AssertJ Swing 3.17 reflects into AWT/Swing internals; required on JDK 9+. -->
+			<jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/javax.swing=ALL-UNNAMED" />
+			<jvmarg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
 
 			<formatter type="plain" />
 
@@ -409,6 +415,12 @@
 				<formatter type="plain" />
 
 				<jvmarg value="-ea" />
+				<!-- AssertJ Swing 3.17 reflects into AWT/Swing internals; required on JDK 9+. -->
+				<jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/java.awt=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/javax.swing=ALL-UNNAMED" />
+				<jvmarg value="--add-opens=java.desktop/sun.awt=ALL-UNNAMED" />
 
 				<formatter type="plain" />
 
@@ -462,6 +474,17 @@
 		<concat>
 			<fileset file="${coverage_report}/summary.txt" />
 		</concat>
+
+		<!-- Coverage by area: GUI vs non-GUI (issue #579). -->
+		<exec executable="python3" failonerror="false" resultproperty="coverage.area.exit">
+			<arg value="${basedir}/script/coverage_metrics.py" />
+			<arg value="--src" />
+			<arg value="${src}" />
+			<arg value="--coverage-xml" />
+			<arg value="${coverage_report}/coverage.xml" />
+			<arg value="--out" />
+			<arg value="${coverage_report}/area-summary.txt" />
+		</exec>
 
 		<!-- Generate summary and fail on test errors/failures -->
 		<concat destfile="${test_report}/summary.txt">
@@ -522,7 +545,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>
@@ -536,7 +559,7 @@
 			<class location="${dist}/vstar.jar" />
 			<auxClasspath>
 				<fileset dir="${extlib}" includes="*.jar"
-					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar" />
+					excludes="junit*.jar,hamcrest*.jar,quicktheories*.jar,pitest*.jar,jacocoant.jar,spotbugs*.jar,commons-text*.jar,commons-lang3*.jar,assertj-*.jar" />
 			</auxClasspath>
 			<sourcePath path="${src}" />
 		</spotbugs>
