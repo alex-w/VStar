@@ -52,6 +52,7 @@ import org.aavso.tools.vstar.util.stats.DescStatsTest;
 import org.aavso.tools.vstar.util.stats.PhaseCalcsTest;
 import org.aavso.tools.vstar.util.stats.anova.CommonsMathAnovaTest;
 import org.aavso.tools.vstar.util.stats.anova.EpsAurVisJD2454700ToJD2455000AnovaTest;
+import org.aavso.tools.vstar.ui.model.list.ValidObservationTableModelTest;
 import org.aavso.tools.vstar.vela.VeLaTest;
 
 import junit.framework.Test;
@@ -101,6 +102,9 @@ public class AllTests {
 		suite.addTestSuite(CommonsMathAnovaTest.class);
 		suite.addTestSuite(EpsAurVisJD2454700ToJD2455000AnovaTest.class);
 		suite.addTestSuite(VeLaTest.class);
+
+		// GUI-coverage tests (issue #579, prong C).
+		suite.addTestSuite(ValidObservationTableModelTest.class);
 		// $JUnit-END$
 		
 		return suite;
