@@ -56,6 +56,12 @@ import org.aavso.tools.vstar.util.stats.DescStatsTest;
 import org.aavso.tools.vstar.util.stats.PhaseCalcsTest;
 import org.aavso.tools.vstar.util.stats.anova.CommonsMathAnovaTest;
 import org.aavso.tools.vstar.util.stats.anova.EpsAurVisJD2454700ToJD2455000AnovaTest;
+import org.aavso.tools.vstar.ui.dialog.AbstractOkCancelDialogTest;
+import org.aavso.tools.vstar.ui.dialog.DateToJdDialogTest;
+import org.aavso.tools.vstar.ui.dialog.DoubleFieldTest;
+import org.aavso.tools.vstar.ui.dialog.TextDialogTest;
+import org.aavso.tools.vstar.ui.model.list.ValidObservationTableModelTest;
+import org.aavso.tools.vstar.ui.pane.list.VisibleSeriesRowFilterTest;
 import org.aavso.tools.vstar.vela.VeLaTest;
 
 import junit.framework.JUnit4TestAdapter;
@@ -111,10 +117,19 @@ public class AllTests {
 		suite.addTestSuite(ProgressInfoTest.class);
 		suite.addTestSuite(MessageBaseTest.class);
 		suite.addTestSuite(InvalidObservationTableModelTest.class);
+
 		// JUnit 4 + AssertJ Swing demonstrator; bridge into the JUnit 3 suite
 		// so it runs from this entry point too (Ant's <batchtest> picks it up
 		// directly via *Test.java).
 		suite.addTest(new JUnit4TestAdapter(NumberSelectionPaneTest.class));
+
+		// GUI-coverage tests (issue #579, prong C).
+		suite.addTestSuite(ValidObservationTableModelTest.class);
+		suite.addTestSuite(VisibleSeriesRowFilterTest.class);
+		suite.addTestSuite(DateToJdDialogTest.class);
+		suite.addTestSuite(TextDialogTest.class);
+		suite.addTestSuite(AbstractOkCancelDialogTest.class);
+		suite.addTestSuite(DoubleFieldTest.class);
 		// $JUnit-END$
 		
 		return suite;
