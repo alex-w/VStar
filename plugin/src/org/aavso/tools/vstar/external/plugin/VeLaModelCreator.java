@@ -253,12 +253,15 @@ public class VeLaModelCreator extends ModelCreatorPluginBase {
                 if (initial == null) {
                     initial = functionDomain;
                 }
-                FunctionDomainPanel domainPanel = new FunctionDomainPanel(initial);
+                boolean phaseAvailable = !obs.isEmpty()
+                        && obs.get(0).getStandardPhase() != null;
+                FunctionDomainPanel domainPanel = new FunctionDomainPanel(initial, phaseAvailable);
 
+                final boolean phaseEnabled = phaseAvailable;
                 velaDialog = new VeLaDialog(DIALOG_TITLE, priorCode, domainPanel,
                         currentCode -> {
                             FunctionDomain inferred = inferFunctionDomain(currentCode);
-                            if (inferred != null) {
+                            if (inferred != null && (inferred != FunctionDomain.PHASE || phaseEnabled)) {
                                 domainPanel.setSelectedDomain(inferred);
                             }
                         });
@@ -671,15 +674,23 @@ public class VeLaModelCreator extends ModelCreatorPluginBase {
         private final JRadioButton timeButton;
         private final JRadioButton phaseButton;
 
-        FunctionDomainPanel(FunctionDomain initial) {
+        FunctionDomainPanel(FunctionDomain initial, boolean phaseAvailable) {
             setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
             setBorder(BorderFactory.createTitledBorder(null, "Function domain (t)",
                     TitledBorder.LEADING, TitledBorder.TOP));
 
             timeButton = new JRadioButton(TIME_LABEL);
             phaseButton = new JRadioButton(PHASE_LABEL);
-            timeButton.setSelected(initial == FunctionDomain.TIME);
-            phaseButton.setSelected(initial == FunctionDomain.PHASE);
+
+            if (!phaseAvailable) {
+                phaseButton.setEnabled(false);
+                phaseButton.setToolTipText(
+                        "Create a phase plot first (Analysis \u2192 Phase Plot)");
+                timeButton.setSelected(true);
+            } else {
+                timeButton.setSelected(initial == FunctionDomain.TIME);
+                phaseButton.setSelected(initial == FunctionDomain.PHASE);
+            }
 
             ButtonGroup group = new ButtonGroup();
             group.add(timeButton);
