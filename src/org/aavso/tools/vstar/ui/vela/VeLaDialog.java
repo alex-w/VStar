@@ -17,6 +17,7 @@
  */
 package org.aavso.tools.vstar.ui.vela;
 
+import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -28,11 +29,15 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.aavso.tools.vstar.ui.dialog.ITextComponent;
 import org.aavso.tools.vstar.ui.dialog.LoadChooser;
@@ -97,8 +102,85 @@ public class VeLaDialog extends TextDialog {
         codeTextArea.setValue(code);
     }
 
+    /**
+     * Constructor that allows callers to add an extra component (e.g. a radio
+     * button panel) above the VeLa code and output areas. The dialog is shown
+     * only after the extra component has been inserted.
+     *
+     * @param title          The dialog title.
+     * @param code           Initial code to display, or null.
+     * @param extraComponent An optional component to show at the top of the
+     *                       dialog. If null, this behaves like
+     *                       {@link #VeLaDialog(String, String)}.
+     */
+    public VeLaDialog(String title, String code, JComponent extraComponent) {
+        this(title, code, extraComponent, null);
+    }
+
+    /**
+     * Full constructor: extra component plus a callback fired whenever the
+     * code text area changes. The callback receives the up-to-date code
+     * string and runs on the EDT (it's invoked from a Swing
+     * {@link DocumentListener}). Useful for callers that want to react
+     * live to user edits, e.g. updating an embedded extra component based
+     * on what the user has just typed or pasted.
+     *
+     * @param title              The dialog title.
+     * @param code               Initial code to display, or null.
+     * @param extraComponent     An optional component to show at the top of
+     *                           the dialog.
+     * @param codeChangeListener An optional listener invoked on every code
+     *                           change with the latest code string.
+     */
+    public VeLaDialog(String title, String code, JComponent extraComponent,
+            Consumer<String> codeChangeListener) {
+        super(title, createTextAreas(), false, true);
+        path = new File("Untitled");
+        if (code != null) {
+            VeLaDialog.code = code;
+            codeTextArea.setValue(code);
+        }
+        if (extraComponent != null) {
+            getContentPane().add(extraComponent, BorderLayout.NORTH);
+            pack();
+        }
+        if (codeChangeListener != null) {
+            addCodeChangeListener(codeChangeListener);
+        }
+        showDialog();
+    }
+
     public VeLaDialog() {
         this("VeLa");
+    }
+
+    /**
+     * Install a listener that fires on every change to the code text area,
+     * receiving the up-to-date code string. The callback runs on the EDT.
+     * Listeners are not deduplicated; callers should add at most one.
+     */
+    public void addCodeChangeListener(Consumer<String> listener) {
+        JTextArea area = (JTextArea) codeTextArea.getUIComponent();
+        area.getDocument().addDocumentListener(new DocumentListener() {
+            private void notifyChange() {
+                listener.accept(codeTextArea.getStringValue());
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                notifyChange();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                notifyChange();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                notifyChange();
+            }
+        });
     }
 
     /**
