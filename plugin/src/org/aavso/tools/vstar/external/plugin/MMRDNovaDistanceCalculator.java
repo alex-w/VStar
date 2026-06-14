@@ -22,6 +22,8 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JTextArea;
+
 import org.aavso.tools.vstar.data.SeriesType;
 import org.aavso.tools.vstar.data.ValidObservation;
 import org.aavso.tools.vstar.exception.AlgorithmError;
@@ -32,6 +34,7 @@ import org.aavso.tools.vstar.ui.dialog.ITextComponent;
 import org.aavso.tools.vstar.ui.dialog.MessageBox;
 import org.aavso.tools.vstar.ui.dialog.MultiEntryComponentDialog;
 import org.aavso.tools.vstar.ui.dialog.SelectableTextField;
+import org.aavso.tools.vstar.ui.dialog.TextArea;
 import org.aavso.tools.vstar.ui.dialog.TextDialog;
 import org.aavso.tools.vstar.ui.dialog.TextField;
 import org.aavso.tools.vstar.ui.dialog.series.SingleSeriesSelectionDialog;
@@ -602,8 +605,13 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
             relationNames.add(relation.getDisplayName());
         }
 
-        final TextField equationField = new TextField("MMRD Relation Equation",
-                MMRDRelation.KANTHARIA_2017.getEquation(), true, false);
+        final TextArea equationField = new TextArea(
+                "MMRD Relation Equation and Error Source",
+                relationEquationDisplay(MMRDRelation.KANTHARIA_2017), 2, 40,
+                true, true);
+        JTextArea equationTextArea = (JTextArea) equationField.getUIComponent();
+        equationTextArea.setLineWrap(true);
+        equationTextArea.setWrapStyleWord(true);
 
         final SelectableTextField relationField = new SelectableTextField(
                 "MMRD Relation", relationNames,
@@ -614,7 +622,7 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
                 MMRDRelation relation = MMRDRelation
                         .fromDisplayName(relationField.getValue());
                 if (relation != null) {
-                    equationField.setValue(relation.getEquation());
+                    equationField.setValue(relationEquationDisplay(relation));
                 }
             }
         });
@@ -719,6 +727,19 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
         }
     }
 
+    // Build a two-line description of a relation for the input dialog: the
+    // relation equation on the first line and its error source on the second.
+    // The aggregate-mean relations embed their error description after a
+    // semicolon, so that clause is dropped in favour of the uniform
+    // "Error source: ..." second line used by all relations.
+    private static String relationEquationDisplay(MMRDRelation relation) {
+        String equation = relation.getEquation();
+        int semicolon = equation.indexOf(';');
+        String firstLine = semicolon >= 0
+                ? equation.substring(0, semicolon).trim() : equation;
+        return firstLine + "\nError source: " + relation.getErrorSource();
+    }
+
     // Show the absolute magnitude and distance results in a dialog.
     private void showResults(MMRDRelation relation, double absMag,
             Double absMagError, double peakMag, double extinction,
@@ -727,8 +748,6 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
 
         resultFields.add(new TextField("MMRD Relation",
                 relation.getDisplayName(), true, false));
-        resultFields.add(new TextField("Equation", relation.getEquation(),
-                true, false));
 
         String absMagStr = NumericPrecisionPrefs.formatMag(absMag);
         if (absMagError != null) {
@@ -736,10 +755,6 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
         }
         resultFields.add(new TextField("Peak Absolute Magnitude (Mv)",
                 absMagStr, true, false));
-        if (absMagError != null) {
-            resultFields.add(new TextField("Mv Error Source",
-                    relation.getErrorSource(), true, false));
-        }
 
         double distanceModulus = peakMag - extinction - absMag;
         resultFields.add(new TextField("Distance Modulus (mv - Av - Mv)",
