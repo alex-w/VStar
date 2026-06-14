@@ -760,8 +760,6 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
         resultFields.add(new TextField("Distance Modulus (mv - Av - Mv)",
                 NumericPrecisionPrefs.formatMag(distanceModulus), true, false));
 
-        resultFields.add(new TextField("Distance (parsecs)",
-                NumericPrecisionPrefs.formatOther(distance), true, false));
         resultFields.add(new TextField("Distance (kpc)",
                 NumericPrecisionPrefs.formatOther(distance / 1000), true, false));
         resultFields.add(new TextField("Distance (light years)",
@@ -775,14 +773,6 @@ public class MMRDNovaDistanceCalculator extends ObservationToolPluginBase {
             double lowerError = bounds[3];
             double upperError = bounds[4];
 
-            resultFields.add(new TextField("Distance Lower Bound (parsecs)",
-                    NumericPrecisionPrefs.formatOther(lowerDistance), true, false));
-            resultFields.add(new TextField("Distance Upper Bound (parsecs)",
-                    NumericPrecisionPrefs.formatOther(upperDistance), true, false));
-            resultFields.add(new TextField("Distance Error (parsecs)",
-                    "-" + NumericPrecisionPrefs.formatOther(lowerError) + " / +"
-                            + NumericPrecisionPrefs.formatOther(upperError),
-                    true, false));
             resultFields.add(new TextField("Distance Lower Bound (kpc)",
                     NumericPrecisionPrefs.formatOther(lowerDistance / 1000), true, false));
             resultFields.add(new TextField("Distance Upper Bound (kpc)",
