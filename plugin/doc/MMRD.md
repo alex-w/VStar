@@ -43,6 +43,10 @@ where:
 - $A_V$ is visual extinction,
 - $D$ is distance in parsecs.
 
+The result dialog reports distance in kiloparsecs (kpc), which is the unit used
+in the nova distance literature, and includes light years for the point estimate
+as a convenience.
+
 If $A_V = 0$, the reported distance should be treated as an upper limit unless
 extinction is known to be negligible.
 
@@ -62,11 +66,7 @@ extinction is known to be negligible.
 
 ![MMRD inputs dialog](images/mmrd_inputs_dialog.png)
 
-TODO: add screenshot of the MMRD inputs dialog.
-
 ![MMRD results dialog](images/mmrd_results_dialog.png)
-
-TODO: add screenshot of the MMRD results dialog.
 
 ## Choosing the JD Range
 
@@ -98,6 +98,10 @@ $m_0 + 2$ and $m_0 + 3$, where $m_0$ is the observed maximum magnitude.
 This is the recommended source for raw AID visual data. Raw observations can
 scatter above and below a smooth decline, so direct crossing detection may
 find a too-early crossing.
+
+This is the same fit provided by the standalone **Nova Exponential Decline
+Model** plug-in; see its documentation for
+the parameters, decline-time derivation, fit metrics, and uncertainty handling.
 
 ### Directly from Observations
 
@@ -171,11 +175,19 @@ same thing. The plug-in keeps the stages explicit:
 | $\sigma M_V$ for inverse-variance mean | max(formal weighted error, inter-relation scatter) |
 | distance bounds | $\sigma M_V$ propagated through the distance modulus |
 
-Distance bounds are shown as lower and upper bounds rather than a single
+When the **Exponential model fit (Kok 2010, eq. 10)** source is used, the
+$\sigma t_2$ and $\sigma t_3$ fields are filled in automatically by propagating
+the fit's parameter uncertainties through the closed-form crossing time (see
+the Nova Exponential Decline Model documentation). If the fit cannot estimate
+those uncertainties, or the decline times are taken directly from the
+observations, the fields are left blank; you may enter values manually, for
+example from a published table.
+
+Distance bounds are shown in kpc as lower and upper bounds rather than a single
 symmetric error, because distance depends exponentially on magnitude. A
 symmetric $\sigma M_V$ usually becomes an asymmetric distance interval.
 
-## Acceptance Testing Against Kok (2010)
+## Comparison with Kok (2010)
 
 For each nova:
 
